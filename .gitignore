@@ -1,0 +1,27 @@
+# Ignore IDE and editor files.
+**/*~
+**/*#
+
+# Ignore binaries.
+*.pyc
+**/__pycache__
+*.DS_Store
+**/*.png
+**/*.h5
+
+# Ignore ipnyb checkpoints.
+.ipynb_checkpoints/
+
+# Ignore metadata.
+qiskit-aer/pip-wheel-metadata/*
+
+# Ignore distribution and installation files.
+**/*.egg-info
+MANIFEST
+dist/*
+
+# Ignore user specific files.
+config.py
+_test/*
+
+src/pip-delete-this-directory.txt
