@@ -634,7 +634,7 @@ def decompose_layer_flexible(layer, G_crosstalk, verbose):
         if (inst.name == 'measure' or inst.name == 'barrier'):
             continue
         if (inst.name == 'cx' or inst.name == 'cnot' or inst.label == 'cnot' or inst.name == 'swap' or inst.label == 'swap'):
-            q1, q2 = qargs[0][1], qargs[1][1]
+            q1, q2 = qargs[0].index, qargs[1].index
             if (q1,q2) in G_crosstalk.nodes():
                 to_decompose.append((q1,q2))
                 if (inst.name == 'cx' or inst.name == 'cnot' or inst.label == 'cnot'):
@@ -686,7 +686,7 @@ def decompose_layer_flexible(layer, G_crosstalk, verbose):
         if (inst.name == 'measure' or inst.name == 'barrier'):
             new_circuit.data.append((inst, qargs, cargs))
         elif (inst.name == 'cx' or inst.name == 'cnot' or inst.label == 'cnot'):
-            q1, q2 = qargs[0][1], qargs[1][1]
+            q1, q2 = qargs[0].index, qargs[1].index
             if (q1,q2) in decomp_iswap or (q2,q1) in decomp_iswap:
                 new_circuit.rz(-np.pi/2, qargs[0])
                 new_circuit.rx(np.pi/2, qargs[1])
@@ -700,7 +700,7 @@ def decompose_layer_flexible(layer, G_crosstalk, verbose):
                 new_circuit.cz(qargs[0],qargs[1])
                 new_circuit.h(qargs[1])
         elif (inst.name == 'swap' or inst.label == 'swap'):
-            q1, q2 = qargs[0][1], qargs[1][1]
+            q1, q2 = qargs[0].index, qargs[1].index
             if (q1,q2) in decomp_iswap or (q2,q1) in decomp_iswap:
                 new_circuit.unitary(sqrtiswap(), [qargs[0], qargs[1]], label='sqrtiswap')
                 new_circuit.rx(np.pi/2, qargs[0])
@@ -760,8 +760,8 @@ def reschedule_layer(layers, coupling, verbose):
         for inst, qargs, cargs in pending_g:
             if len(qargs) == 2:
                 # two-qubit gates
-                q1 = qargs[0][1]
-                q2 = qargs[1][1]
+                q1 = qargs[0].index
+                q2 = qargs[1].index
                 #print("Looking: (%d,%d)" % (q1, q2))
                 #print("Active: ", active_q)
                 conf = False
@@ -784,7 +784,7 @@ def reschedule_layer(layers, coupling, verbose):
 
             elif len(qargs) == 1:
                 # single-qubit gates
-                q1 = qargs[0][1]
+                q1 = qargs[0].index
                 conf = False
                 if (q1 in active_q):
                     conf = True
@@ -798,7 +798,7 @@ def reschedule_layer(layers, coupling, verbose):
                 numq = len(qargs)
                 conf = False
                 for qii in xrange(numq):
-                    qi = qargs[qii][1]
+                    qi = qargs[qii].index
                     if (qi in active_q):
                         conf = True
                 if not conf:
@@ -854,8 +854,8 @@ def tiling_layer(layers, tilings, pattern_offset, verbose):
         for inst, qargs, cargs in pending_g:
             if len(qargs) == 2:
                 # two-qubit gates
-                q1 = qargs[0][1]
-                q2 = qargs[1][1]
+                q1 = qargs[0].index
+                q2 = qargs[1].index
                 #print("Looking: (%d,%d)" % (q1, q2))
                 #print("Active: ", active_q)
                 conf = False
@@ -885,7 +885,7 @@ def tiling_layer(layers, tilings, pattern_offset, verbose):
 
             elif len(qargs) == 1:
                 # single-qubit gates
-                q1 = qargs[0][1]
+                q1 = qargs[0].index
                 conf = False
                 if (q1 in active_q):
                     conf = True
@@ -901,7 +901,7 @@ def tiling_layer(layers, tilings, pattern_offset, verbose):
                 numq = len(qargs)
                 conf = False
                 for qii in range(numq):
-                    qi = qargs[qii][1]
+                    qi = qargs[qii].index
                     if (qi in active_q):
                         conf = True
                 if not conf:
@@ -913,8 +913,8 @@ def tiling_layer(layers, tilings, pattern_offset, verbose):
         if two_q_layer == False and len(two_q_tiling_delay) > 0:
             two_q_possible = []
             for inst, qargs, cargs in two_q_tiling_delay:
-                q1 = qargs[0][1]
-                q2 = qargs[1][1]
+                q1 = qargs[0].index
+                q2 = qargs[1].index
                 if (q1 in active_q or q2 in active_q):
                     next_pd_g.append((inst, qargs, cargs))
                 else:
@@ -922,8 +922,8 @@ def tiling_layer(layers, tilings, pattern_offset, verbose):
             if len(two_q_possible) > 0:
                 two_q_layer = True
                 inst, qargs, cargs = two_q_possible[0]
-                q1 = qargs[0][1]
-                q2 = qargs[1][1]
+                q1 = qargs[0].index
+                q2 = qargs[1].index
                 if (q1,q2) in tilings[pattern_offset % 8] or (q2,q1) in tilings[pattern_offset % 8]:
                     pattern_idx = 0
                 elif (q1,q2) in tilings[(pattern_offset+1) % 8] or (q2,q1) in tilings[(pattern_offset+1) % 8]:
@@ -941,8 +941,8 @@ def tiling_layer(layers, tilings, pattern_offset, verbose):
                 elif (q1,q2) in tilings[(pattern_offset+7) % 8] or (q2,q1) in tilings[(pattern_offset+7) % 8]:
                     pattern_idx = 7
                 for inst, qargs, cargs in two_q_possible:
-                    q1 = qargs[0][1]
-                    q2 = qargs[1][1]
+                    q1 = qargs[0].index
+                    q2 = qargs[1].index
                     if (q1,q2) in tilings[(pattern_offset+pattern_idx) % 8] or (q2,q1) in tilings[(pattern_offset+pattern_idx) % 8]:
                         if (q1 in active_q or q2 in active_q):
                             next_pd_g.append((inst, qargs, cargs))
@@ -1026,8 +1026,8 @@ def limit_colors(layers, lim_colors, G_crosstalk, verbose):
         for inst, qargs, cargs in pending_g:
             if len(qargs) == 2:
                 # two-qubit gates
-                q1 = qargs[0][1]
-                q2 = qargs[1][1]
+                q1 = qargs[0].index
+                q2 = qargs[1].index
                 edge = (q1, q2)
                 edges.append(edge)
                 edges.append((q2,q1))
@@ -1063,8 +1063,8 @@ def limit_colors(layers, lim_colors, G_crosstalk, verbose):
                 for i in range(split-1):
                     # append the gates that belong to the ith sublayer
                     for inst, qargs, cargs in next_pd_g:
-                        q1 = qargs[0][1]
-                        q2 = qargs[1][1]
+                        q1 = qargs[0].index
+                        q2 = qargs[1].index
                         try:
                             ic = int_coloring[(q1,q2)]
                         except:
@@ -1076,8 +1076,8 @@ def limit_colors(layers, lim_colors, G_crosstalk, verbose):
                 # obtain the gates in the last sublayer
                 last_layer = []
                 for inst, qargs, cargs in next_pd_g:
-                    q1 = qargs[0][1]
-                    q2 = qargs[1][1]
+                    q1 = qargs[0].index
+                    q2 = qargs[1].index
                     try:
                         ic = int_coloring[(q1,q2)]
                     except:
@@ -1096,15 +1096,15 @@ def limit_colors(layers, lim_colors, G_crosstalk, verbose):
                     #print("check if can be combined with the next layer")
                     active_next = [] # qubits used in the next layer
                     for inst, qargs, cargs in pending_g:
-                        q1 = qargs[0][1]
+                        q1 = qargs[0].index
                         active_next.append(q1)
                         if len(qargs) == 2:
-                            q2 = qargs[1][1]
+                            q2 = qargs[1].index
                             active_next.append(q2)
                     #print("active_next:",active_next)
                     for inst, qargs, cargs in last_layer:
-                        q1 = qargs[0][1]
-                        q2 = qargs[1][1]
+                        q1 = qargs[0].index
+                        q2 = qargs[1].index
                         if q1 in active_next or q2 in active_next:
                             conf = True
                             break
@@ -1313,13 +1313,13 @@ def success_rate_full_coloring(device, circuit, scheduler, d, decomp, outfile, v
                     if g.name == "barrier": barrier = True
                     if g.name == "measure": continue
                     if len(qargs) == 1:
-                        all_gates.append((g.qasm(),(qargs[0][1], -1)))
-                        active_list[qargs[0][1]] = True
+                        all_gates.append((g.qasm(),(qargs[0].index, -1)))
+                        active_list[qargs[0].index] = True
                         gt = GATETIMES[g.name]
                         if gt > layer_time: layer_time = gt
                         single_qb_err_acc *= 1 - single_qb_err
                     if len(qargs) == 2:
-                        q1, q2 = qargs[0][1], qargs[1][1]
+                        q1, q2 = qargs[0].index, qargs[1].index
                         active_list[q1] = True
                         active_list[q2] = True
                         edges.append((q1, q2))
@@ -1548,7 +1548,7 @@ def success_rate_layer_coloring(device, circuit, scheduler, d, decomp, outfile, 
                 barrier = False
                 for _, qargs, _ in layer.data:
                     if len(qargs) == 2:
-                        q1, q2 = qargs[0][1], qargs[1][1]
+                        q1, q2 = qargs[0].index, qargs[1].index
                         edge = (q1, q2)
                         edges.append(edge)
                         edges.append((q2,q1)) # because undirected graph
@@ -1604,14 +1604,16 @@ def success_rate_layer_coloring(device, circuit, scheduler, d, decomp, outfile, 
                 for g, qargs, _ in layer.data:
                     if g.name == "barrier": barrier = True
                     if g.name == "measure": continue
+                    #print(qargs)
+                    #print(qargs[0].index)
                     if len(qargs) == 1: # single qubit gates
-                        all_gates.append((g.qasm(),(qargs[0][1], -1)))
-                        active_list[qargs[0][1]] = True
+                        all_gates.append((g.qasm(),(qargs[0].index, -1)))
+                        active_list[qargs[0].index] = True
                         gt = GATETIMES[g.name]
                         if gt > layer_time: layer_time = gt
                         single_qb_err_acc *= 1 - single_qb_err
                     elif len(qargs) == 2:
-                        q1, q2 = qargs[0][1], qargs[1][1]
+                        q1, q2 = qargs[0].index, qargs[1].index
                         active_list[q1] = True
                         active_list[q2] = True
                         edges.append((q1, q2))
@@ -1925,13 +1927,13 @@ def success_rate_google_like(device, circuit, scheduler, d, decomp, outfile, ver
                     if g.name == "barrier": barrier = True
                     if g.name == "measure": continue
                     if len(qargs) == 1:
-                        all_gates.append((g.qasm(),(qargs[0][1], -1)))
-                        active_list[qargs[0][1]] = True
+                        all_gates.append((g.qasm(),(qargs[0].index, -1)))
+                        active_list[qargs[0].index] = True
                         gt = GATETIMES[g.name]
                         if gt > layer_time: layer_time = gt
                         success_rate *= 1 - single_qb_err
                     if len(qargs) == 2:
-                        q1, q2 = qargs[0][1], qargs[1][1]
+                        q1, q2 = qargs[0].index, qargs[1].index
                         active_list[q1] = True
                         active_list[q2] = True
                         edges.append((q1, q2))

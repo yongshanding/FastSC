@@ -8,6 +8,7 @@
 *.DS_Store
 **/*.png
 **/*.h5
+**/*.hdf5
 
 # Ignore ipnyb checkpoints.
 .ipynb_checkpoints/

@@ -49,18 +49,18 @@ def get_map_circuit(circuit, coupling_list=None):
 
     #merge_rotation_gates(circuit)
 
-    coupling_map = None if coupling_list is None else CouplingMap(coupling_list)
-
-    pass_manager = PassManager()
+    coupling_map = None if coupling_list is None else CouplingMap(couplinglist=coupling_list)
+    bs = BasicSwap(coupling_map=coupling_map)
+    pass_manager = PassManager(bs)
     # Some CNOT identities are interleaved between others,
     # for this reason a second pass is required. More passes
     # may be required for other circuits.
     pass_manager.append(CXCancellation())
-    if coupling_map is not None:
-        pass_manager.append(BasicSwap(coupling_map))
+    #if coupling_map is not None:
+    #    pass_manager.append(BasicSwap(coupling_map))
 
-    optimized_circuit = transpile(circuit, backend=state_backend,
-                                  coupling_map=coupling_list,
+    optimized_circuit = transpile(circuit, #backend=state_backend,
+                                  #coupling_map=coupling_map,
                                   pass_manager=pass_manager)
 
     return optimized_circuit

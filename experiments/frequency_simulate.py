@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 
 import os, sys, getopt, math, re, random
 import numpy as np
