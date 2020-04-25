@@ -1,10 +1,10 @@
 import numpy as np
 
-def swap_channel(coupling, residual_factors, qubit_freqs, taus):
+
+def swap_channel(coupling, residual_factors, qubit_freqs, tausi, Cqq=0.012):
     # return prob of rabi oscillation between 01 and 10 (i.e. iswap)
     # for each pair of coupled qubits
     # taus is list of hold durations: max swap happens at 2pi/g
-    Cqq = CQQ
     res = []
     if residual_factors==None:
         residual_factors = [1]*len(coupling)
@@ -19,11 +19,10 @@ def swap_channel(coupling, residual_factors, qubit_freqs, taus):
         res.append(residual_factors[i]*np.sin(residual_coupling * tau)**2)
     return res
 
-def leak_channel(coupling, residual_factors, qubit_freqs, alphas, taus):
+def leak_channel(coupling, residual_factors, qubit_freqs, alphas, taus, Cqq = 0.012):
     # return prob of rabi oscillation between 11 and (20+02)/sqrt(2) (i.e. leakage)
     # for each pair of coupled qubits
     # taus is list of hold durations
-    Cqq = CQQ
     res = []
     if residual_factors==None:
         residual_factors = [1]*len(coupling)

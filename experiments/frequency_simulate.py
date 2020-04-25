@@ -12,6 +12,8 @@ import qiskit
 print("Importing fqc...")
 import fastsc
 from fastsc.coloring import success_rate_rand_coloring, success_rate_full_coloring, success_rate_layer_coloring, success_rate_google_like
+
+from fastsc.coloring import compute_decoherence, compute_crosstalk_by_layer
 from fastsc.models import Device
 from fastsc.benchmarks import get_circuit
 
@@ -28,6 +30,11 @@ omega_max = 5.0 #GHz
 delta_int = 1.0
 delta_ext= 0.5
 delta_park = 1.0
+alpha = -0.2
+ejs = 8
+ejl = 20
+ec = 0.3
+cqq = 0.012
 
 ###########################################################
 # Simulation
@@ -151,26 +158,11 @@ def main():
 
     side_length = int(np.sqrt(qubits))
 
-    device = Device(side_length, omega_max, delta_int, delta_ext, delta_park)
+    device = Device(side_length, omega_max, delta_int, delta_ext, delta_park, cqq, alpha, ejs, ejl, ec)
     start = time.time()
     success, avg, worst, d_before, d_after, t, c, t_act, t_2q = simulate(device, circuit, mapper, scheduler, freq, dist, decomp, outputfile, depth=depth, lim_colors=lim_colors, verbose=verbose)
     # calculate decoherence
-    decoh = 1.
-    random.seed(60615)
-    np.random.seed(60615)
-    for i in range(qubits):
-        # relaxation times for qubit i
-        T1_mean = np.random.uniform(20000.,35000.)
-        T1 = np.random.normal(T1_mean,10000.)
-        while T1 <= 0:
-            T1 = np.random.normal(T1_mean,10000.)
-        T2 = T1*min(2.,np.random.normal(1.8,0.2))
-        T1_tilde = T1*np.random.normal(0.7,0.1)
-        T2_tilde = T2*np.random.normal(0.5,0.1)
-        t1 = t_act[i]-t_2q[i]
-        t2 = t_2q[i] # time spent on 2q gates
-        decoh *= math.exp(-1.*t1/T1-t1/T2)
-        decoh *= math.exp(-1.*t2/T1_tilde-t2/T2_tilde)
+    decoh = compute_decoherence(device, t_act, t_2q)
     success *= decoh
     end = time.time()
     print("======================")

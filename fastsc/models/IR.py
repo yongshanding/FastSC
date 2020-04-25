@@ -1,21 +1,25 @@
 "IR.py - IR (Intermediate Representation) of quantum circuit"
 
-from qiskit import Qubit, Instruction
+from qiskit import QuantumCircuit#, Qubit, Instruction
 
-class Qbit(Qubit):
+class Qbit(object):
     def __init__(self, q, omega01, omega12):
         self.register = q.register
         self.index = q.index
         self.idle_freq = [omega01, omega12]
 
-class Inst(Instruction):
+class Inst(object):
     def __init__(self, ins, qargs, cargs, int_freq, gt):
+        self.ins = ins
         self.name = ins.name
         self.label = ins.label
         self.qargs = qargs
         self.cargs = cargs
         self.int_freq = int_freq
         self.gate_time = gt
+    def qasm(self):
+        return self.ins.qasm()
+        
 
 class IR(object):
     def __init__(self, data=[], depth=0, qubits=[], width=0):

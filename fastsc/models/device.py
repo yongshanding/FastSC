@@ -13,18 +13,28 @@ import random as rd
 import time
 import re, math
 from datetime import datetime
-
+from ..util import get_nearest_neighbor_coupling_list
 
 class Device(object):
     """
     Fields:
     """
-    def __init__(self, side_length, omega_max, delta_int, delta_ext, delta_park):
+    def __init__(self, side_length, omega_max, delta_int, delta_ext, delta_park, cqq=0.012, alpha=-0.2, EJS=8, EJL=20, EC=0.3, coupling=None):
+        self.qubits = side_length*side_length
         self.side_length = side_length
         self.omega_max = omega_max
         self.delta_int = delta_int
         self.delta_ext = delta_ext
         self.delta_park = delta_park
+        self.cqq = cqq
+        self.alpha = alpha
+        self.ejs = EJS
+        self.ejl = EJL
+        self.ec = 0.3
+        if coupling==None:
+            self.coupling = get_nearest_neighbor_coupling_list(side_length, side_length)
+        else:
+            self.coupling = coupling
 
 class Sycamore_device(object):
     def __init__(self, size):
