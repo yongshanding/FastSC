@@ -47,7 +47,7 @@ def compute_crosstalk_by_layer(device, ir):
                 elif ins.name == 'unitary' and ins.label == 'sqrtiswap':
                     sqrtiswaps.append((q1,q2))
                 all_taus[(q1,q2)] = ins.gate_time
-        qubit_freqs = freqs 
+        qubit_freqs = freqs
 
         prob_swap = swap_channel(coupling, qubit_freqs, all_taus)
         alphas = [ALPHA for f in qubit_freqs] #TODO
@@ -59,13 +59,13 @@ def compute_crosstalk_by_layer(device, ir):
 
                 success *= prob_swap[i]
                 swap_success *= prob_swap[i]
-            elif (q1,q2) in sqrtiswaps or (q2,q1) in sqrtiswaps: 
+            elif (q1,q2) in sqrtiswaps or (q2,q1) in sqrtiswaps:
                 success *= 1 - abs(0.5-prob_swap[i])
                 swap_success *= 1 - abs(0.5-prob_swap[i])
             else:
                 success *= 1 - prob_swap[i]
                 swap_success *= 1 - prob_swap[i]
-                
+
             success *= 1 - prob_leak[i]
             leak_success *= 1 - prob_leak[i]
     return 1 - success, 1-swap_success, 1-leak_success

@@ -1,5 +1,6 @@
 from fastsc.util import get_connectivity_graph, get_aug_line_graph, get_map_circuit, get_layer_circuits, get_nearest_neighbor_coupling_list
 import networkx as nx
+from ..models import IR, Qbit, Inst
 
 
 # need to add a flag that says whether uniform interaction frequencies are used
@@ -83,12 +84,8 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
         num_layers = len(layers)
         idx = 0
         total_time = 0.0 # in ns
-        total_tcz = 0.0 # total time spent on CZ gates
-        # total number of gates decomposed with iswap and cphase, used only if d=flexible
-        num_iswap = 0
-        num_cphase = 0
-        num_cnot = 0
-        num_swap = 0
+        # total_tcz = 0.0 # total time spent on CZ gates
+
         #while (idx < num_layers or len(leftover) > 0):
         for idx in range(num_layers):
             all_gates = []

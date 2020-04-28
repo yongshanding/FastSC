@@ -1,5 +1,6 @@
 from fastsc.util import get_connectivity_graph, get_aug_line_graph, get_map_circuit, get_layer_circuits, get_nearest_neighbor_coupling_list
 import networkx as nx
+from ..models import IR, Qbit, Inst
 
 def tiling_layer(layers, tilings, pattern_offset, verbose):
     if (len(layers) < 1):
