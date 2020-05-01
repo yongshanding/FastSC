@@ -2,7 +2,6 @@ from fastsc.util import get_connectivity_graph, get_aug_line_graph, get_map_circ
 import networkx as nx
 from ..models import IR, Qbit, Inst
 
-# need to add a flag that says whether uniform interaction frequencies are used
 def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq):
     freqsdata = []
     gatesdata = []
@@ -13,19 +12,23 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
     delta_int = device.delta_int
     delta_ext= device.delta_ext
     delta_park = device.delta_park
+    ALPHA = device.alpha
 
     G_connect = get_connectivity_graph(width, height)
     park_coloring = nx.coloring.greedy_color(G_connect)
     num_park = len(set(park_coloring.values()))
     G_crosstalk = get_aug_line_graph(width, height, d)
+
+    q_arr = get_qubits(circuit)
+
     if full_uni:
         int_coloring = {}
         for node in G_crosstalk.nodes:
             int_coloring[node] = 0
     else:
         int_coloring = nx.coloring.greedy_color(G_crosstalk)
-    #print(int_coloring)
     num_int = len(set(int_coloring.values()))
+
     def _build_color_map():
         # negative colors for parking, non-negative colors for interaction.
         step_park = delta_park / num_park
@@ -39,10 +42,10 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
     color_to_freq = _build_color_map()
     def _park_freq(c):
         omg = color_to_freq[str(-(c+1))]
-        return omg + get_flux_noise(omg, sigma)#+np.random.normal(0,sigma)
+        return omg + get_flux_noise(device, omg, sigma)#+np.random.normal(0,sigma)
     def _int_freq(c):
         omg = color_to_freq[str(c)]
-        return omg + get_flux_noise(omg, sigma)#+np.random.normal(0,sigma)
+        return omg + get_flux_noise(device, omg, sigma)#+np.random.normal(0,sigma)
     def _initial_frequency():
         freqs = dict()
         for q in range(width*height):
@@ -59,10 +62,15 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
     worst_success = 1.0
     max_colors = num_int # max number of colors used
     # Mapping
-    coupling = get_nearest_neighbor_coupling_list(width, height)
+    coupling = device.coupling
     circ_mapped = get_map_circuit(circuit, coupling)
 
     Cqq = CQQ
+    park_freqs = _initial_frequency()
+    alphas = [ALPHA for f in park_freqs]
+    for i in range(num_q):
+        qrr[i].idle_freq = [park_freqs[i], park_freqs[i]+alphas[i]]
+    ir = IR(qubits = q_arr, width = num_q)
 
     #circuit.draw(output='mpl')
     # Check scheduler
@@ -72,12 +80,9 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
     else:
         # scheduler == qiskit or greedy
         layers = get_layer_circuits(circ_mapped)
-        qubit_freqs = _initial_frequency()
-        alphas = [ALPHA for f in qubit_freqs] #TODO
-        #leftover = []
-        #left_gates= []
         num_layers = len(layers)
         idx = 0
+        qubit_freqs = park_freqs
         total_time = 0.0 # in ns
         total_tcz = 0.0 # total time spent on CZ gates
         # total number of gates decomposed with iswap and cphase, used only if d=flexible
@@ -152,18 +157,15 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
                             qubit_freqs[q1] = f
                             qubit_freqs[q2] = f
                             taus[(q1,q2)] = np.pi / (2 * 0.5 * np.sqrt(f*f) * Cqq)
-                            edges_iswaps.append((q1,q2))
                         elif (g.name == 'unitary' and g.label == 'sqrtiswap'):
                             qubit_freqs[q1] = f
                             qubit_freqs[q2] = f
                             #tau_special[(q1,q2)] = 0.5
                             taus[(q1,q2)] = 0.5 * np.pi / (2 * 0.5 * np.sqrt(f*f) * Cqq)
-                            edges_iswaps.append((q1,q2))
                         elif (g.name == 'cz' or g.label == 'cz'):
                             qubit_freqs[q1] = f
                             qubit_freqs[q2] = f - alphas[q2] # b/c match f1 with f2+alpha
                             taus[(q1,q2)] = np.pi / (np.sqrt(2) * 0.5 * np.sqrt(f*f) * Cqq) # f is interaction freq
-                            edges_cphase.append((q1,q2))
                         else:
                             print("Gate %s(%s) not recognized. Supports iswap, sqrtiswap, cz." % (g.name, g.label))
                         t_2q[q1] += taus[(q1,q2)]
@@ -181,17 +183,8 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
                 #        all_gates.append(curr_gates[i])
                 for i in range(len(curr_gates)):
                     all_gates.append(curr_gates[i])
-
-
-                #print("all_gates:")
-                #print(all_gates)
-                #print("edges:")
-                #print(edges)
-                #print("leftover:")
-                #print(leftover)
-                #print("qubit_freqs:")
-                #print(qubit_freqs)
-                #err = compute_crosstalk(edges, coupling, qubit_freqs)
+                print("qubit_freqs:")
+                print(qubit_freqs)
                 if barrier:
                     err, swap_err, leak_err = 0.0, 0.0, 0.0
                     gt = 0.0
@@ -230,6 +223,4 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
                     tot_cnt += 1
                 worst_success = min(worst_success, 1 - err)
                 total_time += layer_time
-            #idx += 1
-        # write_circuit(freqsdata, gatesdata, outf)
     return ir, idx, tot_cnt, total_time, max_colors, t_act, t_2q

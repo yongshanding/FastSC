@@ -17,8 +17,8 @@ import networkx as nx
 import h5py
 
 #GREEDY = 1 # Greedy algorithm parameter: distance to be considered as collision
-ALPHA = -0.2 # aharmonicity - change this.
 #CQQ = 0.012*2*np.pi
+ALPHA = -0.2 # aharmonicity - change this.
 EJS = 8
 EJL = 20
 EC = 0.3
@@ -2061,4 +2061,3 @@ def _tests():
 
 if __name__ == "__main__":
     _tests()
-

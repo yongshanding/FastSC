@@ -236,13 +236,16 @@ def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
     delta_int = device.delta_int
     delta_ext= device.delta_ext
     delta_park = device.delta_park
+    ALPHA = device.alpha
 
     G_connect = get_connectivity_graph(width, height)
     park_coloring = nx.coloring.greedy_color(G_connect)
     num_park = len(set(park_coloring.values()))
     G_crosstalk = get_aug_line_graph(width, height, d)
-    coupling = get_nearest_neighbor_coupling_list(width, height)
+    coupling = device.coupling
     Cqq = CQQ
+
+    q_arr = get_qubits(circuit)
 
     def _build_park_color_map():
         # negative colors for parking, non-negative colors for interaction.
@@ -261,8 +264,8 @@ def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
 
     color_to_freq = _build_park_color_map()
     def _park_freq(c):
-        omg = color_to_freq[str(-(c+1))]#+np.random.normal(0,sigma)
-        return omg + get_flux_noise(omg, sigma)#+np.random.normal(0,sigma)
+        omg = color_to_freq[str(-(c+1))]
+        return omg + get_flux_noise(device, omg, sigma)
     def _initial_frequency():
         freqs = dict()
         for q in range(width*height):
@@ -278,20 +281,23 @@ def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
     tot_cnt = 0
     max_colors = 0 # max number of colors used
     worst_success = 1.0
+    park_freqs = _initial_frequency()
+    alphas = [ALPHA for f in park_freqs]
+    for i in range(num_q):
+        qrr[i].idle_freq = [park_freqs[i], park_freqs[i]+alphas[i]]
+    ir = IR(qubits = q_arr, width = num_q)
+
     # Check scheduler
     if (scheduler == 'hybrid'):
         print("Hybrid scheduler to be implemented.")
         sys.exit(2)
     else:
-        #leftover = []
-        #left_gates= []
         layers = get_layer_circuits(circ_mapped)
-        qubit_freqs = _initial_frequency()
         num_layers = len(layers)
         idx = 0
         total_time = 0.0 # ns
         total_tcz = 0.0
-        alphas = [ALPHA for f in qubit_freqs] #TODO
+        qubit_freqs = park_freqs
 
         if verbose == 0:
             print("Num of layers:", num_layers)
@@ -384,7 +390,7 @@ def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
                     _add_int_color_map(color_to_freq, num_int)
                 def _int_freq(c):
                     omg =  color_to_freq[str(c)]#+np.random.normal(0,sigma)
-                    return omg + get_flux_noise(omg, sigma)
+                    return omg + get_flux_noise(device, omg, sigma)
                 #print(layer)
                 #print("-----------------")
                 # Refill edges and curr_gates
@@ -415,8 +421,7 @@ def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
                             f = _int_freq(int_coloring[(q1, q2)])
                         except:
                             f = _int_freq(int_coloring[(q2, q1)])
-                        #qubit_freqs[q1] = f
-                        #qubit_freqs[q2] = f
+
                         if (g.name == 'unitary' and g.label == 'iswap'):
                             qubit_freqs[q1] = f
                             qubit_freqs[q2] = f
@@ -449,12 +454,8 @@ def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
                 #        all_gates.append(curr_gates[i])
                 for i in range(len(curr_gates)):
                     all_gates.append(curr_gates[i])
-
-                #print("edges:")
-                #print(edges)
                 print("qubit_freqs:")
                 print(qubit_freqs)
-                #err = compute_crosstalk(edges, coupling, qubit_freqs)
                 if barrier:
                     err, swap_err, leak_err = 0.0, 0.0, 0.0
                     gt = 0.0
@@ -483,30 +484,12 @@ def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
                 if verbose == 0:
                     print("Layer success: %12.10f (swap: %12.10f, leak: %12.10f)" % (1-err, swap_err, leak_err))
                     print("Layer time:", layer_time)
-                update_data(freqsdata, gatesdata, qubit_freqs, all_gates, num_q)
                 success_rate *= 1 - err
-                # Reset the frequencies
-                for (q1, q2) in edges:
-                    qubit_freqs[q1] = _park_freq(park_coloring[q1])
-                    qubit_freqs[q2] = _park_freq(park_coloring[q2])
                 if not barrier:
                     tot_success += (1 - err)*single_qb_err_acc
                     tot_cnt += 1
                 worst_success = min(worst_success, 1 - err)
                 total_time += layer_time
             idx += 1
-        write_circuit(freqsdata, gatesdata, outf)
 
-    avg_success = tot_success / tot_cnt
-
-    if decomp=='flexible' and verbose == 0:
-        print("Total number of CNOT gates:", num_cnot)
-        print("Total number of SWAP gates:", num_swap)
-        print("Total number of 2-qubit gates that are decomposed with iSWAP:", num_iswap)
-        if num_iswap+num_cphase > 0:
-            print("Proportion:",num_iswap/(num_iswap+num_cphase))
-        print("Total number of 2-qubit gates that are decomposed with CPHASE:", num_cphase)
-        if num_iswap+num_cphase > 0:
-            print("Proportion:",num_cphase/(num_iswap+num_cphase))
-
-    return success_rate, avg_success, worst_success, idx, tot_cnt, total_time, max_colors, t_act, t_2q
+    return ir, idx, tot_cnt, total_time, max_colors, t_act, t_2q

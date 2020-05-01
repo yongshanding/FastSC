@@ -163,62 +163,17 @@ def google_like(device, circuit, scheduler, d, decomp, verbose):
     delta_int = device.delta_int
     delta_ext= device.delta_ext
     delta_park = device.delta_park
+    q_arr = get_qubits(circuit)
+    ALPHA = device.alpha
 
     tilings = gen_tiling_pattern(device)
     G_connect = get_connectivity_graph(width, height)
-    # park_coloring = nx.coloring.greedy_color(G_connect)
-    # num_park = len(set(park_coloring.values()))
     G_crosstalk = get_aug_line_graph(width, height, d)
-    int_freqs = {}
-    if num_q == 4:
-        int_freqs = {(0,1):6.619, (0,2):6.65, (1,3):6.657, (2,3):6.677}
-        park_freqs = {0:6.605,1:6.638,2:6.694,3:6.681}
-    elif num_q == 9:
-        park_freqs = {0:6.605,1:6.638,2:6.565,3:6.694,4:6.681,5:6.601,6:6.643,7:6.621,8:6.646}
-        int_freqs = {(0,1):6.619, (1,2):6.601, (3,4):6.677, (4,5):6.635, (6,7):6.631, (7,8):6.646, (0,3):6.65, (1,4):6.657, (2,5):6.585, (3,6):6.667, (4,7):6.645,(5,8):6.646}
-    elif num_q == 16:
-        park_freqs = {0:6.605,1:6.638,2:6.565,3:6.555,4:6.694,5:6.681,6:6.601,7:6.626,8:6.643,9:6.621,10:6.646,11:6.657,12:6.712,13:6.671,14:6.586,15:6.623}
-        int_freqs = {(0,1):6.619,(1,2):6.601,(2,3):6.565,(4,5):6.677,(5,6):6.635,(6,7):6.595}
-        int_freqs[(8,9)] = 6.631
-        int_freqs[(9,10)] = 6.646
-        int_freqs[(10,11)] = 6.646
-        int_freqs[(12,13)] = 6.69
-        int_freqs[(13,14)] = 6.631
-        int_freqs[(14,15)] = 6.623
-        int_freqs[(0,4)] = 6.65
-        int_freqs[(1,5)] = 6.657
-        int_freqs[(2,6)] = 6.585
-        int_freqs[(3,7)] = 6.592
-        int_freqs[(4,8)] = 6.667
-        int_freqs[(5,9)] = 6.645
-        int_freqs[(6,10)] = 6.646
-        int_freqs[(7,11)] = 6.642
-        int_freqs[(8,12)] = 6.68
-        int_freqs[(9,13)] = 6.645
-        int_freqs[(10,14)] = 6.646
-        int_freqs[(11,15)] = 6.633
+    syc_device = Sycamore_device(num_q)
+    int_freqs = syc_device.int_freqs
+    park_freqs = syc_device.park_freqs
     num_int = len(set(int_freqs.values()))
-    # num_park = len(set(park_freqs.values()))
 
-    #print(int_coloring)
-    # num_int = len(set(int_coloring.values()))
-    # def _build_color_map():
-        # negative colors for parking, non-negative colors for interaction.
-    #    step_park = delta_park / num_park
-    #    step_int = delta_int / num_int
-    #    colormap = dict()
-    #    for c in range(num_int):
-    #        colormap[str(c)] = omega_max - c * step_int
-    #    for c in range(num_park):
-    #        colormap[str(-(c+1))]= omega_max - delta_int - delta_ext - c * step_park
-    #    return colormap
-    # color_to_freq = _build_color_map()
-    # def _park_freq(c):
-    #    omg = color_to_freq[str(-(c+1))]#+np.random.normal(0,sigma)
-    #    return omg + get_flux_noise(omg, sigma)
-    # def _int_freq(c):
-    #    omg = color_to_freq[str(c)]#+np.random.normal(0,sigma)
-    #    return omg + get_flux_noise(omg, sigma)
     def _initial_frequency():
         freqs = dict()
         for q in range(width*height):
@@ -235,10 +190,15 @@ def google_like(device, circuit, scheduler, d, decomp, verbose):
     worst_success = 1.0
     max_colors = num_int # max number of colors used
     # Mapping
-    coupling = get_nearest_neighbor_coupling_list(width, height)
+    coupling = device.coupling
     circ_mapped = get_map_circuit(circuit, coupling)
 
     Cqq = CQQ
+    park_freqs = _initial_frequency()
+    alphas = [ALPHA for f in park_freqs]
+    for i in range(num_q):
+        qrr[i].idle_freq = [park_freqs[i], park_freqs[i]+alphas[i]]
+    ir = IR(qubits = q_arr, width = num_q)
 
     #circuit.draw(output='mpl')
     # Check scheduler
@@ -248,10 +208,7 @@ def google_like(device, circuit, scheduler, d, decomp, verbose):
     else:
         # scheduler == qiskit or greedy
         layers = get_layer_circuits(circ_mapped)
-        qubit_freqs = _initial_frequency()
-        alphas = [ALPHA for f in qubit_freqs] #TODO
-        #leftover = []
-        #left_gates= []
+        qubit_freqs = park_freqs
         num_layers = len(layers)
         idx = 0
         pattern_offset = 0
@@ -330,6 +287,7 @@ def google_like(device, circuit, scheduler, d, decomp, verbose):
                             f = int_freqs[(q1,q2)]
                         except:
                             f = int_freqs[(q2,q1)]
+                        f += get_flux_noise(device, f, sigma)
                         #print('freq:',f)
                         if (g.name == 'unitary' and g.label == 'iswap'):
                             qubit_freqs[q1] = f
@@ -364,18 +322,6 @@ def google_like(device, circuit, scheduler, d, decomp, verbose):
                 #        all_gates.append(curr_gates[i])
                 for i in range(len(curr_gates)):
                     all_gates.append(curr_gates[i])
-
-
-
-                #print("all_gates:")
-                #print(all_gates)
-                #print("edges:")
-                #print(edges)
-                #print("leftover:")
-                #print(leftover)
-                #print("qubit_freqs:")
-                #print(qubit_freqs)
-                #err = compute_crosstalk(edges, coupling, qubit_freqs)
                 print("qubit_freqs:")
                 print(qubit_freqs)
                 if barrier:
@@ -383,8 +329,6 @@ def google_like(device, circuit, scheduler, d, decomp, verbose):
                     gt = 0.0
                 else:
                     if decomp == 'iswap':
-                        #err, swap_err, leak_err = compute_crosstalk_iswaps(edges, coupling, qubit_freqs, tau_special)
-                        #gt = get_iswap_time(edges, qubit_freqs, tau_special)
                         gt = get_max_time(gt, taus)
                         if scheduler == 'tiling':
                             err, swap_err, leak_err = compute_crosstalk_iswaps_gmon(edges_iswaps, coupling, qubit_freqs, taus, gt, tilings, tiling_idx)
@@ -412,7 +356,7 @@ def google_like(device, circuit, scheduler, d, decomp, verbose):
                 for qubit in range(num_q):
                     if active_list[qubit]:
                         t_act[qubit] += layer_time
-                update_data(freqsdata, gatesdata, qubit_freqs, all_gates, num_q)
+                # update_data(freqsdata, gatesdata, qubit_freqs, all_gates, num_q)
                 success_rate *= 1 - err
                 if verbose == 0:
                     print("Layer success: %12.10f (swap: %12.10f, leak: %12.10f)" % (1-err, swap_err, leak_err))
@@ -426,16 +370,5 @@ def google_like(device, circuit, scheduler, d, decomp, verbose):
                     tot_cnt += 1
                 worst_success = min(worst_success, 1 - err)
                 total_time += layer_time
-            #idx += 1
-        # write_circuit(freqsdata, gatesdata, outf)
-    avg_success = tot_success / tot_cnt
-    if decomp=='flexible' and verbose == 0:
-        print("Total number of CNOT gates:", num_cnot)
-        print("Total number of SWAP gates:", num_swap)
-        print("Total number of 2-qubit gates that are decomposed with iSWAP:", num_iswap)
-        if num_iswap+num_cphase > 0:
-            print("Proportion:",num_iswap/(num_iswap+num_cphase))
-        print("Total number of 2-qubit gates that are decomposed with CPHASE:", num_cphase)
-        if num_iswap+num_cphase > 0:
-            print("Proportion:",num_cphase/(num_iswap+num_cphase))
-    return success_rate, avg_success, worst_success, idx, tot_cnt, total_time, max_colors, t_act, t_2q
+
+    return ir, idx, tot_cnt, total_time, max_colors, t_act, t_2q
