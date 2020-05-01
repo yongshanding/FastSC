@@ -60,12 +60,16 @@ def simulate(device, circuit, mapper, scheduler, freq, dist, decomp, outputfile=
     circ = get_circuit(device.side_length * device.side_length, circuit, dep=depth)
     # Crosstalk-aware mapping yet to be implemented.
     #scheduled = reschedule(circ, scheduler)
-    if (freq == 'random'):
+
+    #if (freq == 'random'):
         # random coloring
-        sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_rand_coloring(device, circ, scheduler, dist, decomp)
-    elif (freq == 'full'):
+    #    sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_rand_coloring(device, circ, scheduler, dist, decomp)
+
+    if (freq == 'full'):
         # Full coloring
-        sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_full_coloring(device, circ, scheduler, dist, decomp, outputfile, verbose)
+        static_coloring()
+        compute_crosstalk_by_layer()
+        #sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_full_coloring(device, circ, scheduler, dist, decomp, outputfile, verbose)
     elif (freq == 'layer'):
         # Layered coloring
         sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_layer_coloring(device, circ, scheduler, dist, decomp, outputfile, lim_colors, verbose)
@@ -160,7 +164,8 @@ def main():
 
     device = Device(side_length, omega_max, delta_int, delta_ext, delta_park, cqq, alpha, ejs, ejl, ec)
     start = time.time()
-    success, avg, worst, d_before, d_after, t, c, t_act, t_2q = simulate(device, circuit, mapper, scheduler, freq, dist, decomp, outputfile, depth=depth, lim_colors=lim_colors, verbose=verbose)
+    # success, avg, worst, d_before, d_after, t, c, t_act, t_2q = simulate(device, circuit, mapper, scheduler, freq, dist, decomp, outputfile, depth=depth, lim_colors=lim_colors, verbose=verbose)
+    success, swap_err, leak_err, d_before, d_after, t, c, t_act, t_2q = simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=depth, lim_colors=lim_colors, verbose=verbose)
     # calculate decoherence
     decoh = compute_decoherence(device, t_act, t_2q)
     success *= decoh
@@ -177,4 +182,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

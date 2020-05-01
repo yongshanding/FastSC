@@ -23,3 +23,13 @@ def relabel_coloring(int_coloring):
         for k in temp:
             new_coloring[k] = i
     return new_coloring
+
+"""
+Returns an array of Qbit objects
+"""
+def get_qubits(circ):
+    arr = []
+    for i in range(len(circ.qubits)):
+        qq = Qbit(circ.qubits[i], i, None)
+        arr.append(qq)
+    return arr

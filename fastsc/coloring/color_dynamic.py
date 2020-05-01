@@ -325,5 +325,188 @@ def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
                 resched_layer = decomp_layer
             if lim_colors > 0:
                 resched_layer = limit_colors(resched_layer, lim_colors, G_crosstalk, verbose)
+            for layer in resched_layer:
+                print(layer.qasm())
+                # Pre-fill edges for constructing (undirected) xtalk graph
+                #edges = [leftover[i//2] if i%2==0 else (leftover[i//2][1], leftover[i//2][0]) for i in range(2*len(leftover))]
+                edges = []
+                edges_cphase = [] # if (q1,q2) is in it, then (q2,q1) is also in it
+                edges_iswaps = [] # if (q1,q2) is in it, then (q2,q1) is also in it
+                #curr_gates = [e for e in left_gates]
+                #leftover = []
+                #left_gates = []
+                taus = {} # For storing coupling times
+                gt = 0.0
+                layer_time = 0.0
+                barrier = False
+                for _, qargs, _ in layer.data:
+                    if len(qargs) == 2:
+                        q1, q2 = qargs[0].index, qargs[1].index
+                        edge = (q1, q2)
+                        edges.append(edge)
+                        edges.append((q2,q1)) # because undirected graph
+                #print("+Edges:")
+                #print(edges)
+                if (len(edges) > 0):
+                    #idx += 1
+                    #continue
+                    subgraph = nx.subgraph(G_crosstalk, edges)
+                    #print(G_crosstalk.nodes())
+                    #print(subgraph.nodes())
+                    int_coloring = nx.coloring.greedy_color(subgraph)
+                    #print("+int_coloring:")
+                    #print(int_coloring)
+                    num_int = len(set(int_coloring.values()))
+                    while lim_colors > 0 and num_int > lim_colors:
+                        # need to recolor the layer, cannot use greedy_color because it is not seeded
+                        # int_coloring = nx.coloring.greedy_color(subgraph,strategy='random_sequential')
+                        int_coloring = {}
+                        nodes = list(subgraph)
+                        np.random.shuffle(nodes)
+                        for u in nodes:
+                            # Set to keep track of colors of neighbours
+                            neighbour_colors = {int_coloring[v] for v in subgraph[u] if v in int_coloring}
+                            # Find the first unused color.
+                            temp_color = 0
+                            while temp_color in neighbour_colors:
+                                temp_color += 1
+                            # Assign the new color to the current node.
+                            int_coloring[u] = temp_color
+                        num_int = len(set(int_coloring.values()))
+                    if verbose == 0:
+                        print("num_int: ", num_int)
+                    int_coloring = relabel_coloring(int_coloring)
+                    if num_int > max_colors: max_colors = num_int
+                    #TODO?
+                    if num_int == 0:
+                        idx += 1
+                        continue
+                    _add_int_color_map(color_to_freq, num_int)
+                def _int_freq(c):
+                    omg =  color_to_freq[str(c)]#+np.random.normal(0,sigma)
+                    return omg + get_flux_noise(omg, sigma)
+                #print(layer)
+                #print("-----------------")
+                # Refill edges and curr_gates
+                #edges = [e for e in leftover]
+                edges = []
+                #curr_gates = [e for e in left_gates]
+                curr_gates = []
+                single_qb_err = 0.0015
+                single_qb_err_acc = 1.0
+                for g, qargs, _ in layer.data:
+                    if g.name == "barrier": barrier = True
+                    if g.name == "measure": continue
+                    #print(qargs)
+                    #print(qargs[0].index)
+                    if len(qargs) == 1: # single qubit gates
+                        all_gates.append((g.qasm(),(qargs[0].index, -1)))
+                        active_list[qargs[0].index] = True
+                        gt = GATETIMES[g.name]
+                        if gt > layer_time: layer_time = gt
+                        single_qb_err_acc *= 1 - single_qb_err
+                    elif len(qargs) == 2:
+                        q1, q2 = qargs[0].index, qargs[1].index
+                        active_list[q1] = True
+                        active_list[q2] = True
+                        edges.append((q1, q2))
+                        curr_gates.append((g.qasm(),(q1, q2)))
+                        try:
+                            f = _int_freq(int_coloring[(q1, q2)])
+                        except:
+                            f = _int_freq(int_coloring[(q2, q1)])
+                        #qubit_freqs[q1] = f
+                        #qubit_freqs[q2] = f
+                        if (g.name == 'unitary' and g.label == 'iswap'):
+                            qubit_freqs[q1] = f
+                            qubit_freqs[q2] = f
+                            taus[(q1,q2)] = np.pi / (2 * 0.5 * np.sqrt(f*f) * Cqq)
+                            edges_iswaps.append((q1,q2))
+                        elif (g.name == 'unitary' and g.label == 'sqrtiswap'):
+                            qubit_freqs[q1] = f
+                            qubit_freqs[q2] = f
+                            taus[(q1,q2)] = 0.5 * np.pi / (2 * 0.5 * np.sqrt(f*f) * Cqq)
+                            edges_iswaps.append((q1,q2))
+                        elif (g.name == 'cz' or g.label == 'cz'):
+                            qubit_freqs[q1] = f
+                            qubit_freqs[q2] = f - alphas[q2] # b/c match f1 with f2+alpha
+                            taus[(q1,q2)] = np.pi / (np.sqrt(2) * 0.5 * np.sqrt(f*f) * Cqq) # f is interaction freq
+                            edges_cphase.append((q1,q2))
+                        else:
+                            print("Gate %s(%s) not recognized. Supports iswap, sqrtiswap, cz." % (g.name, g.label))
+                        t_2q[q1] += taus[(q1,q2)]
+                        t_2q[q2] += taus[(q1,q2)]
+                success_rate *= single_qb_err_acc
+                #if (scheduler == 'greedy'):
+                #    edges, leftover, ind = greedy_reschedule(coupling, edges)
+                #    for i in range(len(ind)):
+                #        if (ind[i]):
+                #            all_gates.append(curr_gates[i])
+                #        else:
+                #            left_gates.append(curr_gates[i])
+                #else:
+                #    for i in range(len(curr_gates)):
+                #        all_gates.append(curr_gates[i])
+                for i in range(len(curr_gates)):
+                    all_gates.append(curr_gates[i])
 
-    return
+                #print("edges:")
+                #print(edges)
+                print("qubit_freqs:")
+                print(qubit_freqs)
+                #err = compute_crosstalk(edges, coupling, qubit_freqs)
+                if barrier:
+                    err, swap_err, leak_err = 0.0, 0.0, 0.0
+                    gt = 0.0
+                else:
+                    if decomp == 'iswap':
+                        gt = get_max_time(gt, taus)
+                        err, swap_err, leak_err = compute_crosstalk_iswaps(edges_iswaps, coupling, qubit_freqs, taus, gt)
+                        #gt = get_iswap_time(edges, qubit_freqs, taus)
+                    elif decomp == 'cphase':
+                        gt = get_max_time(gt, taus)
+                        err, swap_err, leak_err = compute_crosstalk_cphase(edges_iswaps, coupling, qubit_freqs, taus, gt)
+                        #gt = get_cphase_time(edges, qubit_freqs, taus)
+                    elif decomp == 'flexible' or decomp == 'mixed':
+                        gt = get_max_time(gt, taus)
+                        err, swap_err, leak_err = compute_crosstalk_flexible(edges_cphase, edges_iswaps, coupling, qubit_freqs, taus, gt)
+                        #gt_iswap = get_iswap_time(edges_iswaps, qubit_freqs, tau_special)
+                        #gt_cphase = get_cphase_time(edges_cphase, qubit_freqs, tau_special)
+                        #gt = max(gt_iswap, gt_cphase)
+                    else:
+                        print("Decomposition method %s not recognized. Try iswap, cphase, or flexible." % decomp)
+                        gt = 0.0
+                if gt > layer_time: layer_time = gt
+                for qubit in range(num_q):
+                    if active_list[qubit]:
+                        t_act[qubit] += layer_time
+                if verbose == 0:
+                    print("Layer success: %12.10f (swap: %12.10f, leak: %12.10f)" % (1-err, swap_err, leak_err))
+                    print("Layer time:", layer_time)
+                update_data(freqsdata, gatesdata, qubit_freqs, all_gates, num_q)
+                success_rate *= 1 - err
+                # Reset the frequencies
+                for (q1, q2) in edges:
+                    qubit_freqs[q1] = _park_freq(park_coloring[q1])
+                    qubit_freqs[q2] = _park_freq(park_coloring[q2])
+                if not barrier:
+                    tot_success += (1 - err)*single_qb_err_acc
+                    tot_cnt += 1
+                worst_success = min(worst_success, 1 - err)
+                total_time += layer_time
+            idx += 1
+        write_circuit(freqsdata, gatesdata, outf)
+
+    avg_success = tot_success / tot_cnt
+
+    if decomp=='flexible' and verbose == 0:
+        print("Total number of CNOT gates:", num_cnot)
+        print("Total number of SWAP gates:", num_swap)
+        print("Total number of 2-qubit gates that are decomposed with iSWAP:", num_iswap)
+        if num_iswap+num_cphase > 0:
+            print("Proportion:",num_iswap/(num_iswap+num_cphase))
+        print("Total number of 2-qubit gates that are decomposed with CPHASE:", num_cphase)
+        if num_iswap+num_cphase > 0:
+            print("Proportion:",num_cphase/(num_iswap+num_cphase))
+
+    return success_rate, avg_success, worst_success, idx, tot_cnt, total_time, max_colors, t_act, t_2q

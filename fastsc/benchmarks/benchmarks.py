@@ -18,7 +18,6 @@ def get_circuit(numQ, circ_name, dep=0):
         return get_qgan_circuit(numQ)
     elif circ_name == 'ising':
         return get_ising_circuit(numQ)
-
     elif circ_name == 'parallel_cnot':
         return get_parallel_cnot()
     elif circ_name == 'parallel_swap':
@@ -32,4 +31,3 @@ def get_circuit(numQ, circ_name, dep=0):
     else:
         print("Circuit name %s not recognized." % circ_name)
         sys.exit()
-
