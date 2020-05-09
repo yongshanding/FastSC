@@ -10,6 +10,6 @@ from .color_dynamic import color_dynamic
 
 from .success_rate import compute_decoherence, compute_crosstalk_by_layer
 
-from .util import relabel_coloring, get_qubits
+from .util import relabel_coloring, get_qubits, decompose_layer_flexible, decompose_layer, reschedule_layer
 
 __all__ = ['static_coloring', 'google_like', 'color_dynamic', 'compute_decoherence', 'compute_crosstalk_by_layer']

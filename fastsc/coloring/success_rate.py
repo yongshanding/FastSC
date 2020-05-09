@@ -22,7 +22,9 @@ def compute_decoherence(device, t_act, t_2q):
         decoh *= math.exp(-1.*t2/T1_tilde-t2/T2_tilde)
     return decoh
 
-
+# TODO: add single qubit errors: single_qb_err = 0.0015 to success_rate.py
+# TODO: take deactivated/residual coupling into account (call swap_channel_google and leak_channel_google)
+# TODO: add flux noise to success_rate.py
 def compute_crosstalk_by_layer(device, ir):
     # returns error rate of simultaneous iswaps
     success = 1.0
@@ -56,7 +58,6 @@ def compute_crosstalk_by_layer(device, ir):
         #print("leak: ", prob_leak)
         for (i, (q1,q2)) in enumerate(coupling):
             if (q1,q2) in iswaps or (q2,q1) in iswaps:
-
                 success *= prob_swap[i]
                 swap_success *= prob_swap[i]
             elif (q1,q2) in sqrtiswaps or (q2,q1) in sqrtiswaps:
@@ -65,7 +66,6 @@ def compute_crosstalk_by_layer(device, ir):
             else:
                 success *= 1 - prob_swap[i]
                 swap_success *= 1 - prob_swap[i]
-
             success *= 1 - prob_leak[i]
             leak_success *= 1 - prob_leak[i]
     return 1 - success, 1-swap_success, 1-leak_success

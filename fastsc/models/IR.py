@@ -19,7 +19,7 @@ class Inst(object):
         self.gate_time = gt
     def qasm(self):
         return self.ins.qasm()
-        
+
 
 class IR(object):
     def __init__(self, data=[], depth=0, qubits=[], width=0):
@@ -27,26 +27,25 @@ class IR(object):
         self.depth = depth
         self.qubits = qubits
         self.width = width
-    
+
     def append_layer(self, layer):
         self.data.append(layer)
         self.depth += 1
-    
+
     def append_layer_from_insts(self, insts):
         active = []
         gt = 0
         freqs = [qubits[i].idle_freq for i in range(self.width)]
-        
+
         for ins in insts:
             int_freq = ins.int_freq
-            for q in ins.qargs:
-                if q in active:
+            for i in range(len(inst.qargs)):
+                if inst.qargs[i] in active:
                     print("Warning: Qubit " + str(q.index) + " cannot be used twice in one time step.")
                 else:
-                   active.append(q)
-                freqs[q.index] = int_freq
+                   active.append(inst.qargs[i])
+                if int_freq is not None:
+                    freqs[inst.qargs[i].index] = int_freq[i]
             if ins.gate_time >= gt:
                 gt = ins.gate_time
         self.data.append((insts, freqs, gt))
-
-

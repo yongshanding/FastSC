@@ -68,17 +68,20 @@ def simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=0, li
     if (freq == 'full'):
         # Full coloring
         ir, idx, tot_cnt, total_time, max_colors, t_act, t_2q = static_coloring(device, circ, scheduler, dist, decomp, verbose, uniform_freq)
-        compute_crosstalk_by_layer(device, ir)
+        err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir)
+        success = 1. - err
         #sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_full_coloring(device, circ, scheduler, dist, decomp, outputfile, verbose)
     elif (freq == 'layer'):
         # Layered coloring
         ir, idx, tot_cnt, total_time, max_colors, t_act, t_2q = color_dynamic(device, circ, scheduler, dist, decomp, lim_colors, verbose)
-        compute_crosstalk_by_layer(device, ir)
+        err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir)
+        success = 1. - err
         #sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_layer_coloring(device, circ, scheduler, dist, decomp, outputfile, lim_colors, verbose)
     elif (freq == 'google'):
         # with (Google-like) tunable coupling
         ir, idx, tot_cnt, total_time, max_colors, t_act, t_2q = google_like(device, circuit, scheduler, dist, decomp, verbose)
-        compute_crosstalk_by_layer(device, ir)
+        err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir)
+        success = 1. - err
         #sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_google_like(device, circ, scheduler, dist, decomp, outputfile, verbose)
     else:
         success = 0.0

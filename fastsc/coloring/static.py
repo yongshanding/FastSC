@@ -42,10 +42,10 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
     color_to_freq = _build_color_map()
     def _park_freq(c):
         omg = color_to_freq[str(-(c+1))]
-        return omg + get_flux_noise(device, omg, sigma)#+np.random.normal(0,sigma)
+        return omg #+ get_flux_noise(device, omg, sigma)#+np.random.normal(0,sigma)
     def _int_freq(c):
         omg = color_to_freq[str(c)]
-        return omg + get_flux_noise(device, omg, sigma)#+np.random.normal(0,sigma)
+        return omg #+ get_flux_noise(device, omg, sigma)#+np.random.normal(0,sigma)
     def _initial_frequency():
         freqs = dict()
         for q in range(width*height):
@@ -82,17 +82,12 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
         layers = get_layer_circuits(circ_mapped)
         num_layers = len(layers)
         idx = 0
-        qubit_freqs = park_freqs
+        # qubit_freqs = park_freqs
         total_time = 0.0 # in ns
         total_tcz = 0.0 # total time spent on CZ gates
-        # total number of gates decomposed with iswap and cphase, used only if d=flexible
-        num_iswap = 0
-        num_cphase = 0
-        num_cnot = 0
-        num_swap = 0
         #while (idx < num_layers or len(leftover) > 0):
         for idx in range(num_layers):
-            all_gates = []
+            # all_gates = []
             layer_circuit = layers[idx]
             if verbose == 0:
                 print(layer_circuit)
@@ -103,11 +98,7 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
             if decomp == 'flexible':
                 if verbose == 0:
                     print("Decompose layer", idx)
-                decomp_layer, temp_iswap, temp_cphase, temp_cnot, temp_swap = decompose_layer_flexible(layer_circuit, G_crosstalk, verbose)
-                num_iswap += temp_iswap
-                num_cphase += temp_cphase
-                num_cnot += temp_cnot
-                num_swap += temp_swap
+                decomp_layer = decompose_layer_flexible(layer_circuit, G_crosstalk, verbose)
             else:
                 decomp_layer = decompose_layer(layer_circuit, decomp)
             if (scheduler == 'greedy'):
@@ -117,36 +108,38 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
             #print("Layers: %d %d" % (len(decomp_layer), len(resched_layer)))
             for layer in resched_layer:
                 print(layer)
-                edges = []
-                edges_cphase = [] # if (q1,q2) is in it, then (q2,q1) is also in it
-                edges_iswaps = [] # if (q1,q2) is in it, then (q2,q1) is also in it
+                insts = []
+                #edges = []
+                #edges_cphase = [] # if (q1,q2) is in it, then (q2,q1) is also in it
+                #edges_iswaps = [] # if (q1,q2) is in it, then (q2,q1) is also in it
                 #edges = [e for e in leftover]
                 #curr_gates = [e for e in left_gates]
-                curr_gates = []
+                #curr_gates = []
                 taus = {} # For storing couplings that needed sqrt iswaps
                 gt = 0.0
                 layer_time = 0.0 # ns
                 barrier = False
-                single_qb_err = 0.0015
-                single_qb_err_acc = 1.0
-                for g, qargs, _ in layer.data:
+                # single_qb_err = 0.0015
+                # single_qb_err_acc = 1.0
+                for g, qargs, cargs in layer.data:
                     #print(g, qargs)
                     #print(g.qasm())
                     if g.name == "barrier": barrier = True
                     if g.name == "measure": continue
                     if len(qargs) == 1:
-                        all_gates.append((g.qasm(),(qargs[0].index, -1)))
+                        #all_gates.append((g.qasm(),(qargs[0].index, -1)))
                         active_list[qargs[0].index] = True
                         gt = GATETIMES[g.name]
                         if gt > layer_time: layer_time = gt
-                        single_qb_err_acc *= 1 - single_qb_err
+                        insts.append(g,qargs,cargs, None, gt)
+                        # single_qb_err_acc *= 1 - single_qb_err
                     if len(qargs) == 2:
                         q1, q2 = qargs[0].index, qargs[1].index
                         active_list[q1] = True
                         active_list[q2] = True
-                        edges.append((q1, q2))
+                        #edges.append((q1, q2))
                         #print((q1,q2))
-                        curr_gates.append((g.qasm(),(q1, q2)))
+                        #curr_gates.append((g.qasm(),(q1, q2)))
                         try:
                             ic = int_coloring[(q1,q2)]
                         except:
@@ -154,23 +147,24 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
                         f = _int_freq(ic)
                         #print('freq:',f)
                         if (g.name == 'unitary' and g.label == 'iswap'):
-                            qubit_freqs[q1] = f
-                            qubit_freqs[q2] = f
+                            f1 = f
+                            f2 = f
                             taus[(q1,q2)] = np.pi / (2 * 0.5 * np.sqrt(f*f) * Cqq)
                         elif (g.name == 'unitary' and g.label == 'sqrtiswap'):
-                            qubit_freqs[q1] = f
-                            qubit_freqs[q2] = f
+                            f1 = f
+                            f2 = f
                             #tau_special[(q1,q2)] = 0.5
                             taus[(q1,q2)] = 0.5 * np.pi / (2 * 0.5 * np.sqrt(f*f) * Cqq)
                         elif (g.name == 'cz' or g.label == 'cz'):
-                            qubit_freqs[q1] = f
-                            qubit_freqs[q2] = f - alphas[q2] # b/c match f1 with f2+alpha
+                            f1 = f
+                            f2 = f - alphas[q2] # b/c match f1 with f2+alpha
                             taus[(q1,q2)] = np.pi / (np.sqrt(2) * 0.5 * np.sqrt(f*f) * Cqq) # f is interaction freq
                         else:
                             print("Gate %s(%s) not recognized. Supports iswap, sqrtiswap, cz." % (g.name, g.label))
                         t_2q[q1] += taus[(q1,q2)]
                         t_2q[q2] += taus[(q1,q2)]
-                success_rate *= single_qb_err_acc
+                        insts.append(g, qargs, cargs, [f1, f2], taus[(q1,q2)])
+                # success_rate *= single_qb_err_acc
                 #if (scheduler == 'greedy'):
                 #    edges, leftover, ind = greedy_reschedule(coupling, edges)
                 #    for i in range(len(ind)):
@@ -181,46 +175,24 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
                 #else:
                 #    for i in range(len(curr_gates)):
                 #        all_gates.append(curr_gates[i])
-                for i in range(len(curr_gates)):
-                    all_gates.append(curr_gates[i])
-                print("qubit_freqs:")
-                print(qubit_freqs)
-                if barrier:
-                    err, swap_err, leak_err = 0.0, 0.0, 0.0
-                    gt = 0.0
-                else:
-                    if decomp == 'iswap':
-                        #err, swap_err, leak_err = compute_crosstalk_iswaps(edges, coupling, qubit_freqs, tau_special)
-                        #gt = get_iswap_time(edges, qubit_freqs, tau_special)
-                        gt = get_max_time(gt, taus)
-                        err, swap_err, leak_err = compute_crosstalk_iswaps(edges_iswaps, coupling, qubit_freqs, taus, gt)
-                    elif decomp == 'cphase':
-                        gt = get_max_time(gt, taus)
-                        err, swap_err, leak_err = compute_crosstalk_cphase(edges_iswaps, coupling, qubit_freqs, taus, gt)
-                        #err, swap_err, leak_err = compute_crosstalk_cphase(edges, coupling, qubit_freqs, tau_special)
-                        #gt = get_cphase_time(edges, qubit_freqs, tau_special)
-                    elif decomp == 'flexible' or decomp == 'mixed':
-                        gt = get_max_time(gt, taus)
-                        err, swap_err, leak_err = compute_crosstalk_flexible(edges_cphase, edges_iswaps, coupling, qubit_freqs, taus, gt)
-                    else:
-                        print("Decomposition method %s not recognized. Try iswap or cphase." % decomp)
-                        gt = 0.0
-                if gt > layer_time: layer_time = gt
-                for qubit in range(num_q):
-                    if active_list[qubit]:
-                        t_act[qubit] += layer_time
-                update_data(freqsdata, gatesdata, qubit_freqs, all_gates, num_q)
-                success_rate *= 1 - err
-                if verbose == 0:
-                    print("Layer success: %12.10f (swap: %12.10f, leak: %12.10f)" % (1-err, swap_err, leak_err))
-                    print("Layer time:", layer_time)
-                # Reset the frequencies
-                for (q1, q2) in edges:
-                    qubit_freqs[q1] = _park_freq(park_coloring[q1])
-                    qubit_freqs[q2] = _park_freq(park_coloring[q2])
+                #for i in range(len(curr_gates)):
+                #    all_gates.append(curr_gates[i])
+                #print("qubit_freqs:")
+                #print(qubit_freqs)
                 if not barrier:
-                    tot_success += (1 - err)*single_qb_err_acc
+                    ir.append_layer_from_insts(insts)
+                    gt = get_max_time(gt, taus)
                     tot_cnt += 1
-                worst_success = min(worst_success, 1 - err)
-                total_time += layer_time
+                    if gt > layer_time: layer_time = gt
+                    total_time += layer_time
+                    for qubit in range(num_q):
+                        if active_list[qubit]:
+                            t_act[qubit] += layer_time
+                # Reset the frequencies
+                #for (q1, q2) in edges:
+                #    qubit_freqs[q1] = _park_freq(park_coloring[q1])
+                #    qubit_freqs[q2] = _park_freq(park_coloring[q2])
+                    # tot_success += (1 - err)*single_qb_err_acc
+                # worst_success = min(worst_success, 1 - err)
+            idx += 1
     return ir, idx, tot_cnt, total_time, max_colors, t_act, t_2q
