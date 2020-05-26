@@ -19,7 +19,7 @@ class Device(object):
     """
     Fields:
     """
-    def __init__(self, side_length, omega_max, delta_int, delta_ext, delta_park, cqq=0.012, alpha=-0.2, EJS=8, EJL=20, EC=0.3, coupling=None):
+    def __init__(self, side_length, omega_max, delta_int, delta_ext, delta_park, cqq=0.012, alpha=-0.2, EJS=8, EJL=20, EC=0.3, flux_sigma=0.0, coupling=None):
         self.qubits = side_length*side_length
         self.side_length = side_length
         self.omega_max = omega_max
@@ -31,6 +31,7 @@ class Device(object):
         self.ejs = EJS
         self.ejl = EJL
         self.ec = 0.3
+        self.flux_sigma = flux_sigma
         if coupling==None:
             self.coupling = get_nearest_neighbor_coupling_list(side_length, side_length)
         else:
