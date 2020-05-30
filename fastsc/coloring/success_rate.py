@@ -33,7 +33,7 @@ def compute_crosstalk_by_layer(device, ir):
     ALPHA = device.alpha
     coupling = device.coupling
     # one complete swap: tau = pi/2g
-    for (insts, freqs, gt) in ir.data:
+    for (insts, freqs, gt, coup_factors) in ir.data:
         # Iterate over layer
         iswaps = []
         sqrtiswaps = []
@@ -50,9 +50,9 @@ def compute_crosstalk_by_layer(device, ir):
                 all_taus[(q1,q2)] = ins.gate_time
         qubit_freqs = [f + get_flux_noise(f, device) for f in freqs]
 
-        prob_swap = swap_channel(coupling, qubit_freqs, all_taus)
+        prob_swap = swap_channel(coupling, coup_factors, qubit_freqs, all_taus)
         alphas = [ALPHA for f in qubit_freqs] #TODO
-        prob_leak = leak_channel(coupling, qubit_freqs, alphas, all_taus)
+        prob_leak = leak_channel(coupling, coup_factors, qubit_freqs, alphas, all_taus)
         #print("swap: ", prob_swap)
         #print("leak: ", prob_leak)
         for (i, (q1,q2)) in enumerate(coupling):

@@ -322,8 +322,8 @@ def google_like(device, circuit, scheduler, d, decomp, verbose, res_coup=0.0):
                                 coupling_factors.append(1.0)
                             else:
                                 # strength of residual coupling, 0~1
-                                coupling_factors = syc_device.res_coupling 
-                    ir.append_layer_from_insts(insts)
+                                coupling_factors.append(syc_device.res_coupling) 
+                    ir.append_layer_from_insts(insts, coupling_factors)
                     gt = get_max_time(gt, taus)
                     tot_cnt += 1
                     if gt > layer_time: layer_time = gt
