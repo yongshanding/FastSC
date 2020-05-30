@@ -195,4 +195,10 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
                     # tot_success += (1 - err)*single_qb_err_acc
                 # worst_success = min(worst_success, 1 - err)
             idx += 1
-    return ir, idx, tot_cnt, total_time, max_colors, t_act, t_2q
+    ir.tot_cnt = tot_cnt
+    ir.total_time = total_time
+    ir.max_colors = max_colors
+    ir.t_act = t_act
+    ir.t_2q = t_2q
+    return ir, idx 
+

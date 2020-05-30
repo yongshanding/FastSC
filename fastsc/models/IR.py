@@ -27,6 +27,11 @@ class IR(object):
         self.depth = depth
         self.qubits = qubits
         self.width = width
+        self.t_act = None
+        self.t_2q = None
+        self.tot_cnt = None
+        self.total_time = None
+        self.max_colors = None
 
     def append_layer(self, layer):
         self.data.append(layer)

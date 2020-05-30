@@ -451,4 +451,9 @@ def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
                         if active_list[qubit]:
                             t_act[qubit] += layer_time
             idx += 1
-    return ir, idx, tot_cnt, total_time, max_colors, t_act, t_2q
+    ir.t_act = t_act
+    ir.t_2q = t_2q
+    ir.tot_cnt = tot_cnt
+    ir.total_time = total_time
+    ir.max_colors = max_colors
+    return ir, idx 

@@ -2,11 +2,13 @@ from ..models import swap_channel, leak_channel, get_flux_noise
 import numpy as np
 import math, random
 
-def compute_decoherence(device, t_act, t_2q):
+def compute_decoherence(device, ir):
     # calculate decoherence
     decoh = 1.
     random.seed(60615)
     np.random.seed(60615)
+    t_act = ir.t_act
+    t_2q = ir.t_2q
     for i in range(device.qubits):
         # relaxation times for qubit i
         T1_mean = np.random.uniform(20000.,35000.)
@@ -23,7 +25,6 @@ def compute_decoherence(device, t_act, t_2q):
     return decoh
 
 # TODO: add single qubit errors: single_qb_err = 0.0015
-# TODO: provide residual_factors for swap_channel and leak_channel
 def compute_crosstalk_by_layer(device, ir):
     # returns error rate of simultaneous iswaps
     success = 1.0

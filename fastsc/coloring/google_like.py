@@ -332,4 +332,10 @@ def google_like(device, circuit, scheduler, d, decomp, verbose, res_coup=0.0):
                         if active_list[qubit]:
                             t_act[qubit] += layer_time
             idx += 1
-    return ir, idx, tot_cnt, total_time, max_colors, t_act, t_2q
+    ir.tot_cnt = tot_cnt
+    ir.total_time = total_time
+    ir.max_colors = max_colors
+    ir.t_act = t_act
+    ir.t_2q = t_2q
+    return ir, idx 
+

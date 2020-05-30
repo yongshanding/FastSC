@@ -67,33 +67,41 @@ def simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=0, li
 
     if (freq == 'full'):
         # Full coloring
-        ir, idx, tot_cnt, total_time, max_colors, t_act, t_2q = static_coloring(device, circ, scheduler, dist, decomp, verbose, uniform_freq)
+        ir, idx = static_coloring(device, circ, scheduler, dist, decomp, verbose, uniform_freq)
         err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir)
         success = 1. - err
+        qb_err = compute_decoherence(device, ir)
+        success = success * (1. - qb_err)
+        total_time, max_colors = ir.total_time, ir.max_colors
         #sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_full_coloring(device, circ, scheduler, dist, decomp, outputfile, verbose)
     elif (freq == 'layer'):
         # Layered coloring
-        ir, idx, tot_cnt, total_time, max_colors, t_act, t_2q = color_dynamic(device, circ, scheduler, dist, decomp, lim_colors, verbose)
+        ir, idx = color_dynamic(device, circ, scheduler, dist, decomp, lim_colors, verbose)
         err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir)
         success = 1. - err
+        qb_err = compute_decoherence(device, ir)
+        success = success * (1. - qb_err)
+        total_time, max_colors = ir.total_time, ir.max_colors
         #sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_layer_coloring(device, circ, scheduler, dist, decomp, outputfile, lim_colors, verbose)
     elif (freq == 'google'):
         # with (Google-like) tunable coupling
-        ir, idx, tot_cnt, total_time, max_colors, t_act, t_2q = google_like(device, circuit, scheduler, dist, decomp, verbose, res_coupling)
+        ir, idx = google_like(device, circuit, scheduler, dist, decomp, verbose, res_coupling)
         err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir)
         success = 1. - err
+        qb_err = compute_decoherence(device, ir)
+        success = success * (1. - qb_err)
+        total_time, max_colors = ir.total_time, ir.max_colors
         #sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_google_like(device, circ, scheduler, dist, decomp, outputfile, verbose)
     else:
         success = 0.0
         swap_err = 0.0
         leak_err = 0.0
+        qb_err = 0.0
         d_before = 0
         d_after = 0
-        t = 0.0
-        c = 0
-        t_act = []
-        t_2q = []
-    return success, swap_err, leak_err, d_before, d_after, t, c, t_act, t_2q
+        total_time = 0.0
+        max_colors = 0
+    return success, swap_err, leak_err, qb_err, d_before, d_after, total_time, max_colors
 
 
 
@@ -175,10 +183,10 @@ def main():
     device = Device(side_length, omega_max, delta_int, delta_ext, delta_park, cqq, alpha, ejs, ejl, ec)
     start = time.time()
     # success, avg, worst, d_before, d_after, t, c, t_act, t_2q = simulate(device, circuit, mapper, scheduler, freq, dist, decomp, outputfile, depth=depth, lim_colors=lim_colors, verbose=verbose)
-    success, swap_err, leak_err, d_before, d_after, t, c, t_act, t_2q = simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=depth, lim_colors=lim_colors, verbose=verbose, uniform_freq=uniform_freq, sigma=sigma)
+    success, swap_err, leak_err, qb_err, d_before, d_after, t, c = simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=depth, lim_colors=lim_colors, verbose=verbose, uniform_freq=uniform_freq, sigma=sigma)
     # calculate decoherence
-    decoh = compute_decoherence(device, t_act, t_2q)
-    success *= decoh
+    #decoh = compute_decoherence(device, t_act, t_2q)
+    #success *= decoh
     end = time.time()
     print("======================")
     # print("Avg(worst) success rate per timestep: %12.10f(%12.10f)" % (avg, worst))
@@ -187,7 +195,7 @@ def main():
     print("Leakage error: %12.10f" % leak_err)
     print("Circuit depth: %d, %d" % (d_before, d_after)) # before and after decomp 2-q gates
     print("Circuit execution time: %12.10f ns" % t)
-    print("Decoherence factor: ", decoh)
+    print("Decoherence error: ", qb_err)
     print("Compilation time: %12.10f s" % (end-start))
     print("Colors: %d" % c)
 
