@@ -1,4 +1,4 @@
-from fastsc.util import get_connectivity_graph, get_aug_line_graph, get_map_circuit, get_layer_circuits, get_nearest_neighbor_coupling_list
+from fastsc.util import get_connectivity_graph, get_aug_line_graph, get_map_circuit, get_layer_circuits, get_nearest_neighbor_coupling_list, gen_tiling_pattern
 import networkx as nx
 from ..models import IR, Qbit, Inst
 
@@ -153,7 +153,7 @@ def tiling_layer(layers, tilings, pattern_offset, verbose):
     return get_layer_circuits(new_circuit), (pattern_offset+pattern_idx) % 8, patterns
 
 
-def google_like(device, circuit, scheduler, d, decomp, verbose):
+def google_like(device, circuit, scheduler, d, decomp, verbose, res_coup=0.0):
     freqsdata = []
     gatesdata = []
     width = device.side_length
@@ -169,7 +169,7 @@ def google_like(device, circuit, scheduler, d, decomp, verbose):
     tilings = gen_tiling_pattern(device)
     G_connect = get_connectivity_graph(width, height)
     G_crosstalk = get_aug_line_graph(width, height, d)
-    syc_device = Sycamore_device(num_q)
+    syc_device = Sycamore_device(num_q, res_coup)
     int_freqs = syc_device.int_freqs
     park_freqs = syc_device.park_freqs
     num_int = len(set(int_freqs.values()))
@@ -313,6 +313,16 @@ def google_like(device, circuit, scheduler, d, decomp, verbose):
                 #for i in range(len(curr_gates)):
                 #    all_gates.append(curr_gates[i])
                 if not barrier:
+
+                    if (scheduler == 'tiling'):
+                        tiling_active = tilings[tiling_idx]
+                        coupling_factors = []
+                        for (qa,qb) in coupling:
+                            if (qa,qb) in tiling_active or (qb,qa) in tiling_active:
+                                coupling_factors.append(1.0)
+                            else:
+                                # strength of residual coupling, 0~1
+                                coupling_factors = syc_device.res_coupling 
                     ir.append_layer_from_insts(insts)
                     gt = get_max_time(gt, taus)
                     tot_cnt += 1

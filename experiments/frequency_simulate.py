@@ -56,7 +56,7 @@ cqq = 0.012
 #    return res
 
 
-def simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=0, lim_colors=0,verbose=0,uniform_freq=0,sigma=0.0):
+def simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=0, lim_colors=0,verbose=0,uniform_freq=0,sigma=0.0,res_coupling=0.0):
     circ = get_circuit(device.side_length * device.side_length, circuit, dep=depth)
     # Crosstalk-aware mapping yet to be implemented.
     #scheduled = reschedule(circ, scheduler)
@@ -79,7 +79,7 @@ def simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=0, li
         #sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_layer_coloring(device, circ, scheduler, dist, decomp, outputfile, lim_colors, verbose)
     elif (freq == 'google'):
         # with (Google-like) tunable coupling
-        ir, idx, tot_cnt, total_time, max_colors, t_act, t_2q = google_like(device, circuit, scheduler, dist, decomp, verbose)
+        ir, idx, tot_cnt, total_time, max_colors, t_act, t_2q = google_like(device, circuit, scheduler, dist, decomp, verbose, res_coupling)
         err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir)
         success = 1. - err
         #sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_google_like(device, circ, scheduler, dist, decomp, outputfile, verbose)

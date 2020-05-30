@@ -124,3 +124,41 @@ def get_aug_line_graph(width, height, d):
     out_graph.add_edges_from(augmenting_depth_one)
     return out_graph
 
+def gen_tiling_pattern(device):
+    # Generate coupler activation pattern, assume 2D grid of qubits
+    width = device.side_length
+    height = device.side_length
+    num_q = width * height
+    patternA = []
+    patternB = []
+    patternC = []
+    patternD = []
+
+    def _qubit_number(row, col):
+        return row * width + col
+
+    # horizontal edges
+    for row in range(height):
+        for col in range(width - 1):
+            if (col+row)%2 == 1:
+                patternC.append((_qubit_number(row, col), _qubit_number(row, col + 1)))
+            else:
+                patternD.append((_qubit_number(row, col), _qubit_number(row, col + 1)))
+            #coupling_list.append((_qubit_number(row, col), _qubit_number(row, col + 1)))
+            #if directed:
+            #    coupling_list.append((_qubit_number(row, col + 1), _qubit_number(row, col)))
+
+    # vertical edges
+    for col in range(width):
+        for row in range(height - 1):
+            if (col+row)%2 == 1:
+                patternB.append((_qubit_number(row, col), _qubit_number(row + 1, col)))
+            else:
+                patternA.append((_qubit_number(row, col), _qubit_number(row + 1, col)))
+            #coupling_list.append((_qubit_number(row, col), _qubit_number(row + 1, col)))
+            #if directed:
+            #    coupling_list.append((_qubit_number(row + 1, col), _qubit_number(row, col)))
+
+    return [patternA,patternB,patternC,patternD,patternC,patternD,patternA,patternB]
+
+

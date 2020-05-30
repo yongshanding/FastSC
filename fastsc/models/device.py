@@ -38,7 +38,7 @@ class Device(object):
             self.coupling = coupling
 
 class Sycamore_device(object):
-    def __init__(self, size):
+    def __init__(self, size, res_coupling=0.0):
         if size not in [4,9,16]:
             raise Exception("Wrong device size")
         if size == 4:
@@ -68,6 +68,7 @@ class Sycamore_device(object):
             self.int_freqs[(9,13)] = 6.645
             self.int_freqs[(10,14)] = 6.646
             self.int_freqs[(11,15)] = 6.633
+        self.res_coupling = res_coupling
 
     def get_park_freq(self,q):
         if q not in self.park_freqs:

@@ -32,7 +32,7 @@ class IR(object):
         self.data.append(layer)
         self.depth += 1
 
-    def append_layer_from_insts(self, insts):
+    def append_layer_from_insts(self, insts, coupling_factors=[]):
         active = []
         gt = 0
         freqs = [qubits[i].idle_freq for i in range(self.width)]
@@ -48,4 +48,4 @@ class IR(object):
                     freqs[inst.qargs[i].index] = int_freq[i]
             if ins.gate_time >= gt:
                 gt = ins.gate_time
-        self.data.append((insts, freqs, gt))
+        self.data.append((insts, freqs, gt, coupling_factors))
