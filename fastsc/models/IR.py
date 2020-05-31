@@ -1,6 +1,7 @@
 "IR.py - IR (Intermediate Representation) of quantum circuit"
 
 from qiskit import QuantumCircuit#, Qubit, Instruction
+import copy
 
 class Qbit(object):
     def __init__(self, q, omega01, omega12):
@@ -43,7 +44,7 @@ class IR(object):
     def append_layer_from_insts(self, insts, coupling_factors=None):
         active = []
         gt = 0
-        freqs = [self.qubits[i].idle_freq for i in range(self.width)]
+        freqs = [[self.qubits[i].idle_freq[0], self.qubits[i].idle_freq[1]] for i in range(self.width)]
         if coupling_factors == None:
             coupling_factors = [1.0] * len(self.coupling)
 

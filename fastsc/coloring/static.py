@@ -23,7 +23,7 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
 
     q_arr = get_qubits(circuit)
 
-    if full_uni:
+    if uniform_freq:
         int_coloring = {}
         for node in G_crosstalk.nodes:
             int_coloring[node] = 0
@@ -67,11 +67,11 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
     coupling = device.coupling
     circ_mapped = get_map_circuit(circuit, coupling)
 
-    Cqq = CQQ
+    Cqq = device.cqq
     park_freqs = _initial_frequency()
     alphas = [ALPHA for f in park_freqs]
     for i in range(num_q):
-        qrr[i].idle_freq = [park_freqs[i], park_freqs[i]+alphas[i]]
+        q_arr[i].idle_freq = [park_freqs[i], park_freqs[i]+alphas[i]]
     ir = IR(qubits = q_arr, width = num_q, coupling = coupling, alpha = ALPHA)
 
     #circuit.draw(output='mpl')

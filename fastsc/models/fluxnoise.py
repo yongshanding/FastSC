@@ -9,6 +9,7 @@ def get_flux_noise(omega, device):
     Ec = device.ec
     gamma1 = Ejl/Ejs
     d1 = (gamma1 - 1)/(gamma1 + 1)
+    print(omega)
     flux_est = np.arccos((omega-3.75)/1.25)/(2*np.pi)
     flux_new = flux_est + np.random.normal(0,device.flux_sigma)
     def _Em(phi, m):

@@ -54,8 +54,10 @@ def compute_crosstalk_by_layer(device, ir):
         for (f01, f12) in freqs:
             sigma = get_flux_noise(f01, device)
             qubit_01freqs.append(f01 + sigma)
-            qubit_12freqs.append(f01 + sigma)#add same amount of flux noise to 12
+            qubit_12freqs.append(f12 + sigma)#add same amount of flux noise to 12
 
+        #print(qubit_01freqs)
+        #print(qubit_12freqs)
         prob_swap = swap_channel(coupling, coup_factors, qubit_01freqs, all_taus)
         #alphas = [ALPHA for f in qubit_freqs] #TODO
         prob_leak = leak_channel(coupling, coup_factors, qubit_01freqs, qubit_12freqs, all_taus)
@@ -73,4 +75,5 @@ def compute_crosstalk_by_layer(device, ir):
                 swap_success *= 1 - prob_swap[i]
             success *= 1 - prob_leak[i]
             leak_success *= 1 - prob_leak[i]
+        #print(1 - success, 1-swap_success, 1-leak_success)
     return 1 - success, 1-swap_success, 1-leak_success

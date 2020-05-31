@@ -199,7 +199,7 @@ def google_like(device, circuit, scheduler, d, decomp, verbose, res_coup=0.0):
     park_freqs = _initial_frequency()
     alphas = [ALPHA for f in park_freqs]
     for i in range(num_q):
-        qrr[i].idle_freq = [park_freqs[i], park_freqs[i]+alphas[i]]
+        q_arr[i].idle_freq = [park_freqs[i], park_freqs[i]+alphas[i]]
     ir = IR(qubits = q_arr, width = num_q, coupling = coupling, alpha = ALPHA)
 
     #circuit.draw(output='mpl')
