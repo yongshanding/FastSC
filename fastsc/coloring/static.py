@@ -1,6 +1,8 @@
 from fastsc.util import get_connectivity_graph, get_aug_line_graph, get_map_circuit, get_layer_circuits, get_nearest_neighbor_coupling_list
 import networkx as nx
+import numpy as np
 from ..models import IR, Qbit, Inst
+from .util import relabel_coloring, get_qubits, decompose_layer, decompose_layer_flexible, reschedule_layer, get_max_time
 
 def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq):
     freqsdata = []
@@ -70,7 +72,7 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
     alphas = [ALPHA for f in park_freqs]
     for i in range(num_q):
         qrr[i].idle_freq = [park_freqs[i], park_freqs[i]+alphas[i]]
-    ir = IR(qubits = q_arr, width = num_q)
+    ir = IR(qubits = q_arr, width = num_q, coupling = coupling, alpha = ALPHA)
 
     #circuit.draw(output='mpl')
     # Check scheduler
@@ -129,9 +131,9 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
                     if len(qargs) == 1:
                         #all_gates.append((g.qasm(),(qargs[0].index, -1)))
                         active_list[qargs[0].index] = True
-                        gt = GATETIMES[g.name]
+                        gt = device.gate_times[g.name]
                         if gt > layer_time: layer_time = gt
-                        insts.append(g,qargs,cargs, None, gt)
+                        insts.append(Inst(g,qargs,cargs, None, gt))
                         # single_qb_err_acc *= 1 - single_qb_err
                     if len(qargs) == 2:
                         q1, q2 = qargs[0].index, qargs[1].index
@@ -163,7 +165,7 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
                             print("Gate %s(%s) not recognized. Supports iswap, sqrtiswap, cz." % (g.name, g.label))
                         t_2q[q1] += taus[(q1,q2)]
                         t_2q[q2] += taus[(q1,q2)]
-                        insts.append(g, qargs, cargs, [f1, f2], taus[(q1,q2)])
+                        insts.append(Inst(g, qargs, cargs, [f1, f2], taus[(q1,q2)]))
                 # success_rate *= single_qb_err_acc
                 #if (scheduler == 'greedy'):
                 #    edges, leftover, ind = greedy_reschedule(coupling, edges)
@@ -195,10 +197,11 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
                     # tot_success += (1 - err)*single_qb_err_acc
                 # worst_success = min(worst_success, 1 - err)
             idx += 1
-    ir.tot_cnt = tot_cnt
+    ir.depth_before = idx
+    ir.depth_after = tot_cnt
     ir.total_time = total_time
     ir.max_colors = max_colors
     ir.t_act = t_act
     ir.t_2q = t_2q
-    return ir, idx 
+    return ir 
 

@@ -49,11 +49,16 @@ def compute_crosstalk_by_layer(device, ir):
                 elif ins.name == 'unitary' and ins.label == 'sqrtiswap':
                     sqrtiswaps.append((q1,q2))
                 all_taus[(q1,q2)] = ins.gate_time
-        qubit_freqs = [f + get_flux_noise(f, device) for f in freqs]
+        qubit_01freqs = []
+        qubit_12freqs = []
+        for (f01, f12) in freqs:
+            sigma = get_flux_noise(f01, device)
+            qubit_01freqs.append(f01 + sigma)
+            qubit_12freqs.append(f01 + sigma)#add same amount of flux noise to 12
 
-        prob_swap = swap_channel(coupling, coup_factors, qubit_freqs, all_taus)
-        alphas = [ALPHA for f in qubit_freqs] #TODO
-        prob_leak = leak_channel(coupling, coup_factors, qubit_freqs, alphas, all_taus)
+        prob_swap = swap_channel(coupling, coup_factors, qubit_01freqs, all_taus)
+        #alphas = [ALPHA for f in qubit_freqs] #TODO
+        prob_leak = leak_channel(coupling, coup_factors, qubit_01freqs, qubit_12freqs, all_taus)
         #print("swap: ", prob_swap)
         #print("leak: ", prob_leak)
         for (i, (q1,q2)) in enumerate(coupling):

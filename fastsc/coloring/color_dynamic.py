@@ -1,230 +1,8 @@
 from fastsc.util import get_connectivity_graph, get_aug_line_graph, get_map_circuit, get_layer_circuits, get_nearest_neighbor_coupling_list
 import networkx as nx
-from ..models import IR, Qbit, Inst
-
-def limit_colors(layers, lim_colors, G_crosstalk, verbose):
-    # print("Limit colors:")
-    if len(layers) < 1 and verbose == 0:
-        print("Too few layers for limit_colors")
-        sys.exit()
-    new_qregs = layers[0].qregs
-    new_cregs = layers[0].cregs
-    if len(new_qregs) > 1 and verbose == 0:
-        print("Multiple q registers.")
-    if len(new_cregs) == 0:
-        new_circuit = QuantumCircuit(new_qregs[0])
-    elif len(new_cregs) == 1:
-        new_circuit = QuantumCircuit(new_qregs[0], new_cregs[0])
-    else:
-        if verbose == 0:
-            print("Multiple c registers.")
-        new_circuit = QuantumCircuit(new_qregs[0])
-    num_layers = len(layers)
-    # print("number of layers:",num_layers)
-    idx = 1
-    pending_g = []
-    for g in layers[0].data:
-        pending_g.append(g)
-    while len(pending_g) > 0 or idx < num_layers:
-        # print("idx (of the next layer, start with 1):",idx)
-        #print("idx %d" % idx)
-        #print(coupling)
-        next_pd_g = [] # gates/instructions
-        edges = []
-        for inst, qargs, cargs in pending_g:
-            if len(qargs) == 2:
-                # two-qubit gates
-                q1 = qargs[0].index
-                q2 = qargs[1].index
-                edge = (q1, q2)
-                edges.append(edge)
-                edges.append((q2,q1))
-                next_pd_g.append((inst, qargs, cargs))
-            else: # 1-qubit gate
-                new_circuit.data.append((inst, qargs, cargs))
-        # put the gates in the next layer into pending_g
-        pending_g = []
-        if (idx < num_layers):
-            for g in layers[idx].data:
-                pending_g.append(g)
-        # if there's at least 1 2-q gate
-        if (len(next_pd_g) > 0):
-            #print(" There are 2-q gates")
-            # color the layer
-            subgraph = nx.subgraph(G_crosstalk, edges)
-            #print(G_crosstalk.nodes())
-            #print(subgraph.nodes())
-            int_coloring = nx.coloring.greedy_color(subgraph)
-            #print("int_coloring:")
-            #print(int_coloring)
-            int_coloring = relabel_coloring(int_coloring)
-            num_int = len(set(int_coloring.values())) # the number of colors
-            # if the coloring uses more colors than allowed
-            if num_int > lim_colors:
-                #print(" Layer to be split, num_int:",num_int)
-                # split the layer
-                split = int(num_int/lim_colors) # the number of new layers
-                if num_int%lim_colors != 0:
-                    split += 1
-                #print("number of sublayers:",split)
-                # for all but the last of the new layers
-                for i in range(split-1):
-                    # append the gates that belong to the ith sublayer
-                    for inst, qargs, cargs in next_pd_g:
-                        q1 = qargs[0].index
-                        q2 = qargs[1].index
-                        try:
-                            ic = int_coloring[(q1,q2)]
-                        except:
-                            ic = int_coloring[(q2,q1)]
-                        if ic >= lim_colors*i and ic < lim_colors*(i+1):
-                            new_circuit.data.append((inst, qargs, cargs))
-                    new_circuit.barrier(new_qregs[0])
-                    #print("Added sublayer:", i)
-                # obtain the gates in the last sublayer
-                last_layer = []
-                for inst, qargs, cargs in next_pd_g:
-                    q1 = qargs[0].index
-                    q2 = qargs[1].index
-                    try:
-                        ic = int_coloring[(q1,q2)]
-                    except:
-                        ic = int_coloring[(q2,q1)]
-                    if ic >= (split-1)*lim_colors:
-                        last_layer.append((inst, qargs, cargs))
-                #print("Last sublayer obtained, len:",len(last_layer))
-                # for the last sublayer, we check if it can be combined with the next layer
-                if idx >= num_layers:
-                    #print("Already the last layer, just append")
-                    for g in last_layer:
-                        new_circuit.data.append(g)
-                    new_circuit.barrier(new_qregs[0])
-                else:
-                    conf = False
-                    #print("check if can be combined with the next layer")
-                    active_next = [] # qubits used in the next layer
-                    for inst, qargs, cargs in pending_g:
-                        q1 = qargs[0].index
-                        active_next.append(q1)
-                        if len(qargs) == 2:
-                            q2 = qargs[1].index
-                            active_next.append(q2)
-                    #print("active_next:",active_next)
-                    for inst, qargs, cargs in last_layer:
-                        q1 = qargs[0].index
-                        q2 = qargs[1].index
-                        if q1 in active_next or q2 in active_next:
-                            conf = True
-                            break
-                    if conf: # the last sublayer cannot be combined with the next layer
-                        #print("cannot be combined")
-                        for g in last_layer:
-                            new_circuit.data.append(g)
-                        new_circuit.barrier(new_qregs[0])
-                    else: # the last sublayer can be combined with the next layer
-                        #print("can be combined")
-                        for g in last_layer:
-                            pending_g.append(g)
-            else: # if the layer doesn't need to be split
-                #print(" Layer doesn't need to be split")
-                for inst, qargs, cargs in next_pd_g:
-                    new_circuit.data.append((inst, qargs, cargs))
-                new_circuit.barrier(new_qregs[0])
-        else: # this layer only has 1-q gates
-            #print(" There aren't 2-q gates")
-            new_circuit.barrier(new_qregs[0])
-        idx += 1
-    return get_layer_circuits(new_circuit)
-
-def reschedule_layer(layers, coupling, verbose):
-    if (len(layers) < 1):
-        print("Too few layers for reschedule_layer")
-        sys.exit()
-
-    new_qregs = layers[0].qregs
-    new_cregs = layers[0].cregs
-    if len(new_qregs) > 1:
-        print("Multiple q registers.")
-    if len(new_cregs) == 0:
-        new_circuit = QuantumCircuit(new_qregs[0])
-    elif len(new_cregs) == 1:
-        new_circuit = QuantumCircuit(new_qregs[0], new_cregs[0])
-    else:
-        print("Multiple c registers.")
-        new_circuit = QuantumCircuit(new_qregs[0])
-
-    num_layers = len(layers)
-    #print("nl %d" % num_layers)
-    idx = 1
-    pending_g = []
-    for g in layers[0].data:
-        pending_g.append(g)
-    while len(pending_g) > 0 or idx < num_layers:
-        #print("idx %d" % idx)
-        #print(coupling)
-        active_q = [] # active qubits in this layer
-        next_pd_g = [] # gates/instructions
-        for inst, qargs, cargs in pending_g:
-            if len(qargs) == 2:
-                # two-qubit gates
-                q1 = qargs[0].index
-                q2 = qargs[1].index
-                #print("Looking: (%d,%d)" % (q1, q2))
-                #print("Active: ", active_q)
-                conf = False
-                if (q1 in active_q or q2 in active_q):
-                    conf = True
-                if not conf:
-                    for (n1, n2) in coupling:
-                        if (q1 == n1 and n2 in active_q) or (q2 == n1 and n2 in active_q) or (q1 == n2 and n1 in active_q) or (q2 == n2 and n1 in active_q):
-                            conf = True
-                            if verbose == 0:
-                                print("Delay gate (%d, %d) due to crosstalk" % (q1,q2))
-                            break
-                if not conf:
-                    active_q.append(q1)
-                    active_q.append(q2)
-                    new_circuit.data.append((inst, qargs, cargs))
-                else:
-                    next_pd_g.append((inst, qargs, cargs))
-
-
-            elif len(qargs) == 1:
-                # single-qubit gates
-                q1 = qargs[0].index
-                conf = False
-                if (q1 in active_q):
-                    conf = True
-                if not conf:
-                    active_q.append(q1)
-                    new_circuit.data.append((inst, qargs, cargs))
-                else:
-                    next_pd_g.append((inst, qargs, cargs))
-            else:
-                # Multi-qubit gates; Barrier?
-                numq = len(qargs)
-                conf = False
-                for qii in xrange(numq):
-                    qi = qargs[qii].index
-                    if (qi in active_q):
-                        conf = True
-                if not conf:
-                    active_q.append(qi)
-                    new_circuit.data.append((inst, qargs, cargs))
-                else:
-                    next_pd_g.append((inst, qargs, cargs))
-
-        pending_g = next_pd_g
-        if (len(pending_g) == 0 and idx < num_layers):
-            for g in layers[idx].data:
-                pending_g.append(g)
-            idx += 1
-        elif (idx < num_layers and not layers[idx].data[0][0].name == 'barrier'):
-            for g in layers[idx].data:
-                pending_g.append(g)
-            idx += 1
-        new_circuit.barrier(new_qregs[0])
-    return get_layer_circuits(new_circuit)
+import numpy as np
+from fastsc.models import IR, Qbit, Inst
+from .util import relabel_coloring, get_qubits, decompose_layer, decompose_layer_flexible, reschedule_layer, limit_colors, get_max_time
 
 def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
     freqsdata = []
@@ -243,7 +21,7 @@ def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
     num_park = len(set(park_coloring.values()))
     G_crosstalk = get_aug_line_graph(width, height, d)
     coupling = device.coupling
-    Cqq = CQQ
+    Cqq = device.cqq
 
     q_arr = get_qubits(circuit)
 
@@ -284,8 +62,8 @@ def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
     park_freqs = _initial_frequency()
     alphas = [ALPHA for f in park_freqs]
     for i in range(num_q):
-        qrr[i].idle_freq = [park_freqs[i], park_freqs[i]+alphas[i]]
-    ir = IR(qubits = q_arr, width = num_q)
+        q_arr[i].idle_freq = [park_freqs[i], park_freqs[i]+alphas[i]]
+    ir = IR(qubits = q_arr, width = num_q, coupling = coupling, alpha = ALPHA)
 
     # Check scheduler
     if (scheduler == 'hybrid'):
@@ -397,9 +175,9 @@ def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
                     if len(qargs) == 1: # single qubit gates
                         # all_gates.append((g.qasm(),(qargs[0].index, -1)))
                         active_list[qargs[0].index] = True
-                        gt = GATETIMES[g.name]
+                        gt = device.gate_times[g.name]
                         if gt > layer_time: layer_time = gt
-                        insts.append(g,qargs,cargs, None, gt)
+                        insts.append(Inst(g,qargs,cargs, None, gt))
                         # single_qb_err_acc *= 1 - single_qb_err
                     elif len(qargs) == 2:
                         q1, q2 = qargs[0].index, qargs[1].index
@@ -427,7 +205,7 @@ def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
                             print("Gate %s(%s) not recognized. Supports iswap, sqrtiswap, cz." % (g.name, g.label))
                         t_2q[q1] += taus[(q1,q2)]
                         t_2q[q2] += taus[(q1,q2)]
-                        insts.append(g, qargs, cargs, [f1, f2], taus[(q1,q2)])
+                        insts.append(Inst(g, qargs, cargs, [f1, f2], taus[(q1,q2)]))
                 # success_rate *= single_qb_err_acc
                 #if (scheduler == 'greedy'):
                 #    edges, leftover, ind = greedy_reschedule(coupling, edges)
@@ -453,7 +231,8 @@ def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
             idx += 1
     ir.t_act = t_act
     ir.t_2q = t_2q
-    ir.tot_cnt = tot_cnt
+    ir.depth_before = idx
+    ir.depth_after = tot_cnt
     ir.total_time = total_time
     ir.max_colors = max_colors
-    return ir, idx 
+    return ir 

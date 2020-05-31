@@ -15,6 +15,9 @@ import re, math
 from datetime import datetime
 from ..util import get_nearest_neighbor_coupling_list
 
+
+GATETIMES = {'unitary': 55,'rz': 30, 'z':30, 'u1': 30, 's': 30, 't': 30, 'rx': 30, 'x': 30, 'u2': 30, 'ry': 30, 'y': 30, 'u3': 30, 'h': 30, 'measure': 0.0, 'barrier': 0.0} # all in ns
+
 class Device(object):
     """
     Fields:
@@ -36,6 +39,7 @@ class Device(object):
             self.coupling = get_nearest_neighbor_coupling_list(side_length, side_length)
         else:
             self.coupling = coupling
+        self.gate_times = GATETIMES
 
 class Sycamore_device(object):
     def __init__(self, size, res_coupling=0.0):

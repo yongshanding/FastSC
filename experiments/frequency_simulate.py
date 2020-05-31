@@ -9,10 +9,11 @@ from datetime import datetime
 
 print("Importing qiskit...")
 import qiskit
-print("Importing fqc...")
+print("Importing fastsc...")
 import fastsc
-from fastsc.coloring import success_rate_rand_coloring, success_rate_full_coloring, success_rate_layer_coloring, success_rate_google_like
+#from fastsc.coloring import success_rate_rand_coloring, success_rate_full_coloring, success_rate_layer_coloring, success_rate_google_like
 
+from fastsc.coloring import static_coloring, color_dynamic, google_like
 from fastsc.coloring import compute_decoherence, compute_crosstalk_by_layer
 from fastsc.models import Device
 from fastsc.benchmarks import get_circuit
@@ -67,29 +68,32 @@ def simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=0, li
 
     if (freq == 'full'):
         # Full coloring
-        ir, idx = static_coloring(device, circ, scheduler, dist, decomp, verbose, uniform_freq)
+        ir = static_coloring(device, circ, scheduler, dist, decomp, verbose, uniform_freq)
         err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir)
         success = 1. - err
         qb_err = compute_decoherence(device, ir)
         success = success * (1. - qb_err)
+        d_before, d_after = ir.depth_before, ir.depth_after  
         total_time, max_colors = ir.total_time, ir.max_colors
         #sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_full_coloring(device, circ, scheduler, dist, decomp, outputfile, verbose)
     elif (freq == 'layer'):
         # Layered coloring
-        ir, idx = color_dynamic(device, circ, scheduler, dist, decomp, lim_colors, verbose)
+        ir = color_dynamic(device, circ, scheduler, dist, decomp, lim_colors, verbose)
         err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir)
         success = 1. - err
         qb_err = compute_decoherence(device, ir)
         success = success * (1. - qb_err)
+        d_before, d_after = ir.depth_before, ir.depth_after  
         total_time, max_colors = ir.total_time, ir.max_colors
         #sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_layer_coloring(device, circ, scheduler, dist, decomp, outputfile, lim_colors, verbose)
     elif (freq == 'google'):
         # with (Google-like) tunable coupling
-        ir, idx = google_like(device, circuit, scheduler, dist, decomp, verbose, res_coupling)
+        ir = google_like(device, circuit, scheduler, dist, decomp, verbose, res_coupling)
         err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir)
         success = 1. - err
         qb_err = compute_decoherence(device, ir)
         success = success * (1. - qb_err)
+        d_before, d_after = ir.depth_before, ir.depth_after  
         total_time, max_colors = ir.total_time, ir.max_colors
         #sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_google_like(device, circ, scheduler, dist, decomp, outputfile, verbose)
     else:
@@ -130,13 +134,13 @@ def main():
         opt, args = getopt.getopt(sys.argv[1:], "hi:p:m:s:f:x:d:q:c:v:u:n:", ["help", "input=", "depth=", "mapper=", "scheduler=", "frequency=", "crosstalk=", "decomposition=", "qubits=","colors=","verbose=","uniform_freq=","noise="])
     except getopt.GetOptError as err:
         print(err)
-        print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -p <depth of supremacy circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity> -u <uniform_freq> -n <flux noise>")
+        print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -p <depth of supremacy circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity=1: less verbose> -u <uniform_freq=0> -n <flux noise=0.0>")
         sys.exit(2)
     usage = True
     for o,a in opt:
         usage = False
         if o in ("-h", "--help"):
-            print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -p <depth of supremacy circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity> -u <uniform_freq> -n <flux noise>")
+            print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -p <depth of supremacy circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity=1: less verbose> -u <uniform_freq=0> -n <flux noise=0.0>")
             sys.exit()
         elif o in ("-i", "--input"): # bv, qft,
             circuit = a
@@ -163,12 +167,12 @@ def main():
         elif o in ("-n", "--noise"):
             sigma = float(a)
         else:
-            print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -p <depth of supremacy circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity> -u <uniform_freq> -n <flux noise>")
+            print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -p <depth of supremacy circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity=1: less verbose> -u <uniform_freq=0> -n <flux noise=0.0>")
             sys.exit(2)
 
     if (usage):
         print("------")
-        print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -dep <depth of circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity> -u <uniform_freq> -n <flux noise>")
+        print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -dep <depth of circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity=1: less verbose> -u <uniform_freq=0> -n <flux noise=0.0>")
         print("------")
 
     if (mapper == None): mapper = 'qiskit'

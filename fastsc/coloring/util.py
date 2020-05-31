@@ -7,6 +7,19 @@ Input: A dictionary with (key, value) = (edge, int color)
 Return: A dictionary with (key, value) = (edge, int color), such that if a<b
 then more nodes are colored with a than b
 """
+from fastsc.models import Qbit
+from qiskit import QuantumCircuit 
+from fastsc.util import get_layer_circuits
+import numpy as np
+import networkx as nx
+from qiskit.quantum_info.operators import Operator
+
+def iswap():
+    return Operator([[1., 0., 0., 0.],[0., 0., -1.j, 0.],[0., -1.j, 0., 0.], [0., 0., 0., 1.]])
+
+def sqrtiswap():
+    return Operator([[1., 0., 0., 0.],[0., 1./np.sqrt(2), -1.j/np.sqrt(2), 0.],[0., -1.j/np.sqrt(2), 1./np.sqrt(2), 0.], [0., 0., 0., 1.]])
+
 def relabel_coloring(int_coloring):
     num_int = len(set(int_coloring.values()))
     arr = [] # [(color, popularity) for each color]
@@ -301,3 +314,144 @@ def reschedule_layer(layers, coupling, verbose):
             idx += 1
         new_circuit.barrier(new_qregs[0])
     return get_layer_circuits(new_circuit)
+
+def limit_colors(layers, lim_colors, G_crosstalk, verbose):
+    # print("Limit colors:")
+    if len(layers) < 1 and verbose == 0:
+        print("Too few layers for limit_colors")
+        sys.exit()
+    new_qregs = layers[0].qregs
+    new_cregs = layers[0].cregs
+    if len(new_qregs) > 1 and verbose == 0:
+        print("Multiple q registers.")
+    if len(new_cregs) == 0:
+        new_circuit = QuantumCircuit(new_qregs[0])
+    elif len(new_cregs) == 1:
+        new_circuit = QuantumCircuit(new_qregs[0], new_cregs[0])
+    else:
+        if verbose == 0:
+            print("Multiple c registers.")
+        new_circuit = QuantumCircuit(new_qregs[0])
+    num_layers = len(layers)
+    # print("number of layers:",num_layers)
+    idx = 1
+    pending_g = []
+    for g in layers[0].data:
+        pending_g.append(g)
+    while len(pending_g) > 0 or idx < num_layers:
+        # print("idx (of the next layer, start with 1):",idx)
+        #print("idx %d" % idx)
+        #print(coupling)
+        next_pd_g = [] # gates/instructions
+        edges = []
+        for inst, qargs, cargs in pending_g:
+            if len(qargs) == 2:
+                # two-qubit gates
+                q1 = qargs[0].index
+                q2 = qargs[1].index
+                edge = (q1, q2)
+                edges.append(edge)
+                edges.append((q2,q1))
+                next_pd_g.append((inst, qargs, cargs))
+            else: # 1-qubit gate
+                new_circuit.data.append((inst, qargs, cargs))
+        # put the gates in the next layer into pending_g
+        pending_g = []
+        if (idx < num_layers):
+            for g in layers[idx].data:
+                pending_g.append(g)
+        # if there's at least 1 2-q gate
+        if (len(next_pd_g) > 0):
+            #print(" There are 2-q gates")
+            # color the layer
+            subgraph = nx.subgraph(G_crosstalk, edges)
+            #print(G_crosstalk.nodes())
+            #print(subgraph.nodes())
+            int_coloring = nx.coloring.greedy_color(subgraph)
+            #print("int_coloring:")
+            #print(int_coloring)
+            int_coloring = relabel_coloring(int_coloring)
+            num_int = len(set(int_coloring.values())) # the number of colors
+            # if the coloring uses more colors than allowed
+            if num_int > lim_colors:
+                #print(" Layer to be split, num_int:",num_int)
+                # split the layer
+                split = int(num_int/lim_colors) # the number of new layers
+                if num_int%lim_colors != 0:
+                    split += 1
+                #print("number of sublayers:",split)
+                # for all but the last of the new layers
+                for i in range(split-1):
+                    # append the gates that belong to the ith sublayer
+                    for inst, qargs, cargs in next_pd_g:
+                        q1 = qargs[0].index
+                        q2 = qargs[1].index
+                        try:
+                            ic = int_coloring[(q1,q2)]
+                        except:
+                            ic = int_coloring[(q2,q1)]
+                        if ic >= lim_colors*i and ic < lim_colors*(i+1):
+                            new_circuit.data.append((inst, qargs, cargs))
+                    new_circuit.barrier(new_qregs[0])
+                    #print("Added sublayer:", i)
+                # obtain the gates in the last sublayer
+                last_layer = []
+                for inst, qargs, cargs in next_pd_g:
+                    q1 = qargs[0].index
+                    q2 = qargs[1].index
+                    try:
+                        ic = int_coloring[(q1,q2)]
+                    except:
+                        ic = int_coloring[(q2,q1)]
+                    if ic >= (split-1)*lim_colors:
+                        last_layer.append((inst, qargs, cargs))
+                #print("Last sublayer obtained, len:",len(last_layer))
+                # for the last sublayer, we check if it can be combined with the next layer
+                if idx >= num_layers:
+                    #print("Already the last layer, just append")
+                    for g in last_layer:
+                        new_circuit.data.append(g)
+                    new_circuit.barrier(new_qregs[0])
+                else:
+                    conf = False
+                    #print("check if can be combined with the next layer")
+                    active_next = [] # qubits used in the next layer
+                    for inst, qargs, cargs in pending_g:
+                        q1 = qargs[0].index
+                        active_next.append(q1)
+                        if len(qargs) == 2:
+                            q2 = qargs[1].index
+                            active_next.append(q2)
+                    #print("active_next:",active_next)
+                    for inst, qargs, cargs in last_layer:
+                        q1 = qargs[0].index
+                        q2 = qargs[1].index
+                        if q1 in active_next or q2 in active_next:
+                            conf = True
+                            break
+                    if conf: # the last sublayer cannot be combined with the next layer
+                        #print("cannot be combined")
+                        for g in last_layer:
+                            new_circuit.data.append(g)
+                        new_circuit.barrier(new_qregs[0])
+                    else: # the last sublayer can be combined with the next layer
+                        #print("can be combined")
+                        for g in last_layer:
+                            pending_g.append(g)
+            else: # if the layer doesn't need to be split
+                #print(" Layer doesn't need to be split")
+                for inst, qargs, cargs in next_pd_g:
+                    new_circuit.data.append((inst, qargs, cargs))
+                new_circuit.barrier(new_qregs[0])
+        else: # this layer only has 1-q gates
+            #print(" There aren't 2-q gates")
+            new_circuit.barrier(new_qregs[0])
+        idx += 1
+    return get_layer_circuits(new_circuit)
+
+def get_max_time(gt, taus):
+    tmax = gt
+    for t in taus.values():
+        if t > tmax: tmax = t
+    return tmax
+
