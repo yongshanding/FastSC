@@ -34,10 +34,15 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
     def _build_color_map():
         # negative colors for parking, non-negative colors for interaction.
         step_park = delta_park / num_park
-        step_int = delta_int / num_int
         colormap = dict()
-        for c in range(num_int):
-            colormap[str(c)] = omega_max - c * step_int
+        if decomp == 'cphase' or decomp == 'flexible':
+            step_int = (delta_int + ALPHA) / num_int
+            for c in range(num_int):
+                colormap[str(c)] = omega_max + ALPHA - c * step_int
+        else:
+            step_int = delta_int / num_int
+            for c in range(num_int):
+                colormap[str(c)] = omega_max - c * step_int
         for c in range(num_park):
             colormap[str(-(c+1))]= omega_max - delta_int - delta_ext - c * step_park
         return colormap

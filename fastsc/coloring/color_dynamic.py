@@ -36,9 +36,14 @@ def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
             colormap[str(-(c+1))]= omega_max - delta_int - delta_ext - c * step_park
         return colormap
     def _add_int_color_map(colormap, n_int):
-        step_int = delta_int / n_int
-        for c in range(n_int):
-            colormap[str(c)] = omega_max - c * step_int
+        if decomp == 'cphase' or decomp == 'flexible':
+            step_int = (delta_int + ALPHA) / n_int
+            for c in range(n_int):
+                colormap[str(c)] = omega_max + ALPHA - c * step_int
+        else:
+            step_int = delta_int / n_int
+            for c in range(n_int):
+                colormap[str(c)] = omega_max - c * step_int
 
     color_to_freq = _build_park_color_map()
     def _park_freq(c):
