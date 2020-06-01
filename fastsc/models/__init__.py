@@ -1,7 +1,7 @@
 """Data Models"""
 
 #from .pulse import Pulse
-from .device import Device
+from .device import Device, Sycamore_device
 
 from .IR import Qbit, Inst, IR
 

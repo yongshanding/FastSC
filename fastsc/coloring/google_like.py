@@ -1,7 +1,7 @@
 from fastsc.util import get_connectivity_graph, get_aug_line_graph, get_map_circuit, get_layer_circuits, get_nearest_neighbor_coupling_list, gen_tiling_pattern
 import networkx as nx
 import numpy as np
-from ..models import IR, Qbit, Inst
+from ..models import Sycamore_device, IR, Qbit, Inst
 from .util import relabel_coloring, get_qubits, decompose_layer, decompose_layer_flexible, reschedule_layer, get_max_time
 
 def tiling_layer(layers, tilings, pattern_offset, verbose):
@@ -195,7 +195,7 @@ def google_like(device, circuit, scheduler, d, decomp, verbose, res_coup=0.0):
     coupling = device.coupling
     circ_mapped = get_map_circuit(circuit, coupling)
 
-    Cqq = CQQ
+    Cqq = device.cqq
     park_freqs = _initial_frequency()
     alphas = [ALPHA for f in park_freqs]
     for i in range(num_q):
@@ -315,7 +315,7 @@ def google_like(device, circuit, scheduler, d, decomp, verbose, res_coup=0.0):
                 #for i in range(len(curr_gates)):
                 #    all_gates.append(curr_gates[i])
                 if not barrier:
-
+                    coupling_factors = None
                     if (scheduler == 'tiling'):
                         tiling_active = tilings[tiling_idx]
                         coupling_factors = []

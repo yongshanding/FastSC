@@ -15,7 +15,7 @@ import fastsc
 
 from fastsc.coloring import static_coloring, color_dynamic, google_like
 from fastsc.coloring import compute_decoherence, compute_crosstalk_by_layer
-from fastsc.models import Device
+from fastsc.models import Device, Sycamore_device
 from fastsc.benchmarks import get_circuit
 
 #data_path = config.DATA_PATH
@@ -88,7 +88,7 @@ def simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=0, li
         #sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_layer_coloring(device, circ, scheduler, dist, decomp, outputfile, lim_colors, verbose)
     elif (freq == 'google'):
         # with (Google-like) tunable coupling
-        ir = google_like(device, circuit, scheduler, dist, decomp, verbose, res_coupling)
+        ir = google_like(device, circ, scheduler, dist, decomp, verbose, res_coupling)
         err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir)
         success = 1. - err
         qb_err = compute_decoherence(device, ir)
