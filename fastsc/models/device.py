@@ -29,6 +29,7 @@ class Device(object):
         self.delta_int = delta_int
         self.delta_ext = delta_ext
         self.delta_park = delta_park
+        self.omega_min = omega_max - delta_int - delta_ext - delta_park
         self.cqq = cqq
         self.alpha = alpha
         self.ejs = EJS
@@ -42,7 +43,9 @@ class Device(object):
         self.gate_times = GATETIMES
 
 class Sycamore_device(object):
-    def __init__(self, size, res_coupling=0.0):
+    def __init__(self, device, size, res_coupling=0.0):
+        if size != device.qubits:
+            print("Warning: device size inconsistent. Device: " + str(device.qubits) + ", Sycamore_device: " + str(size))
         if size not in [4,9,16]:
             raise Exception("Wrong device size")
         if size == 4:
@@ -73,6 +76,14 @@ class Sycamore_device(object):
             self.int_freqs[(10,14)] = 6.646
             self.int_freqs[(11,15)] = 6.633
         self.res_coupling = res_coupling
+        omega_max = max(self.int_freqs.values())
+        omega_min = min(self.int_freqs.values())
+        if omega_max > device.omega_max:
+            print("Warning: max freq inconsistent. Device: " + str(device.omega_max) + ", Sycamore_device: " + str(omega_max))
+            self.omega_max = omega_max
+        if omega_min < device.omega_min:
+            print("Warning: min freq inconsistent. Device: " + str(device.omega_min) + ", Sycamore_device: " + str(omega_min))
+            self.omega_min = omega_min
 
     def get_park_freq(self,q):
         if q not in self.park_freqs:

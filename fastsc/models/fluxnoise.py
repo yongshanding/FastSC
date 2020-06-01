@@ -11,7 +11,10 @@ def get_flux_noise(omega, device):
     d1 = (gamma1 - 1)/(gamma1 + 1)
     #print(omega)
     high = device.omega_max
-    low = device.omega_max - device.delta_int - device.delta_ext - device.delta_park
+    low = device.omega_min
+    if (omega < low or omega > high):
+        print("Flux noise warning: " + str(omega) + " not in range [" + str(low) + "," + str(high) + "].")
+        return omega
     flux_est = np.arccos((omega-(high+low)/2.0)/((high-low)/2.0))/(2*np.pi)
     flux_new = flux_est + np.random.normal(0,device.flux_sigma)
     def _Em(phi, m):

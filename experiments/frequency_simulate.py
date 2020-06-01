@@ -27,7 +27,7 @@ from fastsc.benchmarks import get_circuit
 
 ### Device Parameters ###
 #side_length = 4
-omega_max = 5.0 #GHz
+omega_max = 6.9 #GHz
 delta_int = 1.0
 delta_ext= 0.5
 delta_park = 1.0
