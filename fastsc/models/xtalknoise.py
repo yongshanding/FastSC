@@ -12,7 +12,7 @@ def swap_channel(coupling, residual_factors, qubit_freqs, taus, Cqq=0.019):
     for (i, (q1,q2)) in enumerate(coupling):
         J = 0.5 * np.sqrt(qubit_freqs[q1] * qubit_freqs[q2]) * Cqq
         delta_omega = np.absolute(qubit_freqs[q1] - qubit_freqs[q2])
-        if delta_omega == 0:
+        if delta_omega <= 1e-5:
             residual_coupling = J
         else:
             residual_coupling = J**2 / (delta_omega * 4 * np.pi)
@@ -33,7 +33,7 @@ def leak_channel(coupling, residual_factors, qubit_01freqs, qubit_12freqs, taus,
         f2 = qubit_12freqs[q2]
         J = 0.5 * np.sqrt(f1 * f2) * Cqq
         delta_omega = np.absolute(f1 - f2)
-        if delta_omega == 0:
+        if delta_omega <= 1e-5:
             residual_coupling = np.sqrt(2) * J
         else:
             residual_coupling = (np.sqrt(2)*J)**2 / (delta_omega * 4 * np.pi)
