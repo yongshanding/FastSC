@@ -3,7 +3,7 @@ import numpy as np
 import math, random
 
 def compute_decoherence(device, ir):
-    # calculate decoherence
+    # calculate probability of decoherence
     decoh = 1.
     #random.seed(60615)
     #np.random.seed(60615)
@@ -22,7 +22,7 @@ def compute_decoherence(device, ir):
         t2 = t_2q[i] # time spent on 2q gates
         decoh *= math.exp(-1.*t1/T1-t1/T2)
         decoh *= math.exp(-1.*t2/T1_tilde-t2/T2_tilde)
-    return decoh
+    return 1.0 - decoh
 
 # TODO: add single qubit errors: single_qb_err = 0.0015
 def compute_crosstalk_by_layer(device, ir, verbose=1):
@@ -33,6 +33,7 @@ def compute_crosstalk_by_layer(device, ir, verbose=1):
     Cqq = device.cqq
     ALPHA = device.alpha
     coupling = device.coupling
+    num_coupling = len(coupling)
     # one complete swap: tau = pi/2g
     for (insts, freqs, gt, coup_factors) in ir.data:
         # Iterate over layer
@@ -56,32 +57,41 @@ def compute_crosstalk_by_layer(device, ir, verbose=1):
             qubit_01freqs.append(f01 + sigma)
             qubit_12freqs.append(f12 + sigma)#add same amount of flux noise to 12
 
-        #print(qubit_01freqs)
-        #print(qubit_12freqs)
+        
+        if verbose == 0: 
+            print("Omega01:")
+            print(qubit_01freqs)
+            print("Omega12:")
+            print(qubit_12freqs)
         prob_swap = swap_channel(coupling, coup_factors, qubit_01freqs, all_taus)
         #alphas = [ALPHA for f in qubit_freqs] #TODO
         prob_leak = leak_channel(coupling, coup_factors, qubit_01freqs, qubit_12freqs, all_taus)
         #print("swap: ", prob_swap)
         #print("leak: ", prob_leak)
-        layer_success_swap, layer_success_leak = 1.0, 1.0
+        layer_avg_swap, layer_avg_leak = 0.0, 0.0 # average success per layer
         for (i, (q1,q2)) in enumerate(coupling):
             if (q1,q2) in iswaps or (q2,q1) in iswaps:
-                success *= prob_swap[i]
-                swap_success *= prob_swap[i]
-                layer_success_swap *= prob_swap[i]
+                #success *= prob_swap[i]
+                #swap_success *= prob_swap[i]
+                layer_avg_swap += prob_swap[i]
             elif (q1,q2) in sqrtiswaps or (q2,q1) in sqrtiswaps:
-                success *= 1 - abs(0.5-prob_swap[i])
-                swap_success *= 1 - abs(0.5-prob_swap[i])
-                layer_success_swap *= 1 - abs(0.5-prob_swap[i])
+                #success *= 1 - abs(0.5-prob_swap[i])
+                #swap_success *= 1 - abs(0.5-prob_swap[i])
+                layer_avg_swap += 1 - abs(0.5-prob_swap[i])
             else:
-                success *= 1 - prob_swap[i]
-                swap_success *= 1 - prob_swap[i]
-                layer_success_swap *= 1 - prob_swap[i]
-            success *= 1 - prob_leak[i]
-            leak_success *= 1 - prob_leak[i]
-            layer_success_leak *= 1 - prob_leak[i]
+                #success *= 1 - prob_swap[i]
+                #swap_success *= 1 - prob_swap[i]
+                layer_avg_swap += 1 - prob_swap[i]
+            #success *= 1 - prob_leak[i]
+            #leak_success *= 1 - prob_leak[i]
+            layer_avg_leak += 1 - prob_leak[i]
+        layer_avg_swap /= num_coupling
+        layer_avg_leak /= num_coupling
+        swap_success *= layer_avg_swap
+        leak_success *= layer_avg_leak
         if verbose == 0:
-            print("Layer error: " + str(1-layer_success_swap) + " (swap), " + str(1-layer_success_leak) + " (leak).")
+            print("Layer avg error: " + str(1-layer_avg_swap) + " (swap), " + str(1-layer_avg_leak) + " (leak).")
 
-        #print(1 - success, 1-swap_success, 1-leak_success)
+    success = swap_success * leak_success
+    print(1 - success, 1-swap_success, 1-leak_success)
     return 1 - success, 1-swap_success, 1-leak_success

@@ -3,6 +3,7 @@ import networkx as nx
 import numpy as np
 from ..models import Sycamore_device, IR, Qbit, Inst
 from .util import relabel_coloring, get_qubits, decompose_layer, decompose_layer_flexible, reschedule_layer, get_max_time
+from qiskit import QuantumCircuit
 
 def tiling_layer(layers, tilings, pattern_offset, verbose):
     if (len(layers) < 1):

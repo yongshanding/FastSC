@@ -9,9 +9,9 @@ def get_flux_noise(omega, device):
     Ec = device.ec
     gamma1 = Ejl/Ejs
     d1 = (gamma1 - 1)/(gamma1 + 1)
-    #print(omega)
-    high = device.omega_max
-    low = device.omega_min
+    high = float(device.omega_max) + 0.00001
+    low = float(device.omega_min) - 0.00001
+    print(omega, high, low)
     if (omega < low or omega > high):
         print("Flux noise warning: " + str(omega) + " not in range [" + str(low) + "," + str(high) + "].")
         return omega

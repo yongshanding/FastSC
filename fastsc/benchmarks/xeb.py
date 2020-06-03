@@ -1,7 +1,23 @@
 
 from qiskit import QuantumCircuit
+from qiskit.quantum_info.operators import Operator
 import numpy as np
 import networkx as nx
+
+def iswap(params):
+    return Operator([[1., 0., 0., 0.],[0., 0., -1.j, 0.],[0., -1.j, 0., 0.], [0., 0., 0., 1.]])
+
+def sqrtx():
+    """Returns the single qubit gate Sqrt(X)"""
+    return Operator([[(1.+1.j)/2,(1.-1.j)/2],[(1.-1.j)/2,(1.+1.j)/2]])
+
+def sqrty():
+    """Returns the single qubit gate Sqrt(Y)"""
+    return Operator([[(1.+1.j)/2,(-1-1.j)/2],[(1.+1.j)/2,(1.+1.j)/2]])
+
+def sqrtw():
+    """Returns the single qubit gate Sqrt(W)"""
+    return Operator([[(1.+1.j)/2,-1.j/np.sqrt(2)],[1./np.sqrt(2),(1.+1.j)/2]])
 
 def get_xeb_circuit(num_qubits, depth):
     """Cross-entropy benchmark circuit based on Google supremacy paper"""

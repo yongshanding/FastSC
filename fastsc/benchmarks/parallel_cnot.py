@@ -6,7 +6,7 @@ def get_parallel_cnot(nQubits):
 
     cnot_circ = QuantumCircuit(nQubits)
     side = int(np.sqrt(nQubits))
-    a = int(nQubits / 2 - 1)
+    a = int(nQubits / 2) - 2
     cnot_circ.cnot(a, a+1)
     cnot_circ.cnot(a+side, a+side+1)
 
