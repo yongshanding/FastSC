@@ -27,15 +27,15 @@ from fastsc.benchmarks import get_circuit
 
 ### Device Parameters ###
 #side_length = 4
-omega_max = 6.9 #GHz
+omega_max = 7 #GHz
 delta_int = 1.0
 delta_ext= 0.5
 delta_park = 1.0
 alpha = -0.2
 ejs = 8
 ejl = 20
-ec = 0.3
-cqq = 0.012
+ec = 0.5
+cqq = 0.019
 
 ###########################################################
 # Simulation
@@ -69,7 +69,7 @@ def simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=0, li
     if (freq == 'full'):
         # Full coloring
         ir = static_coloring(device, circ, scheduler, dist, decomp, verbose, uniform_freq)
-        err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir)
+        err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir, verbose)
         success = 1. - err
         qb_err = compute_decoherence(device, ir)
         success = success * (1. - qb_err)
@@ -79,7 +79,7 @@ def simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=0, li
     elif (freq == 'layer'):
         # Layered coloring
         ir = color_dynamic(device, circ, scheduler, dist, decomp, lim_colors, verbose)
-        err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir)
+        err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir, verbose)
         success = 1. - err
         qb_err = compute_decoherence(device, ir)
         success = success * (1. - qb_err)
@@ -89,7 +89,7 @@ def simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=0, li
     elif (freq == 'google'):
         # with (Google-like) tunable coupling
         ir = google_like(device, circ, scheduler, dist, decomp, verbose, res_coupling)
-        err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir)
+        err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir, verbose)
         success = 1. - err
         qb_err = compute_decoherence(device, ir)
         success = success * (1. - qb_err)

@@ -5,8 +5,8 @@ import math, random
 def compute_decoherence(device, ir):
     # calculate decoherence
     decoh = 1.
-    random.seed(60615)
-    np.random.seed(60615)
+    #random.seed(60615)
+    #np.random.seed(60615)
     t_act = ir.t_act
     t_2q = ir.t_2q
     for i in range(device.qubits):
@@ -25,7 +25,7 @@ def compute_decoherence(device, ir):
     return decoh
 
 # TODO: add single qubit errors: single_qb_err = 0.0015
-def compute_crosstalk_by_layer(device, ir):
+def compute_crosstalk_by_layer(device, ir, verbose=1):
     # returns error rate of simultaneous iswaps
     success = 1.0
     swap_success = 1.0
@@ -63,17 +63,25 @@ def compute_crosstalk_by_layer(device, ir):
         prob_leak = leak_channel(coupling, coup_factors, qubit_01freqs, qubit_12freqs, all_taus)
         #print("swap: ", prob_swap)
         #print("leak: ", prob_leak)
+        layer_success_swap, layer_success_leak = 1.0, 1.0
         for (i, (q1,q2)) in enumerate(coupling):
             if (q1,q2) in iswaps or (q2,q1) in iswaps:
                 success *= prob_swap[i]
                 swap_success *= prob_swap[i]
+                layer_success_swap *= prob_swap[i]
             elif (q1,q2) in sqrtiswaps or (q2,q1) in sqrtiswaps:
                 success *= 1 - abs(0.5-prob_swap[i])
                 swap_success *= 1 - abs(0.5-prob_swap[i])
+                layer_success_swap *= 1 - abs(0.5-prob_swap[i])
             else:
                 success *= 1 - prob_swap[i]
                 swap_success *= 1 - prob_swap[i]
+                layer_success_swap *= 1 - prob_swap[i]
             success *= 1 - prob_leak[i]
             leak_success *= 1 - prob_leak[i]
+            layer_success_leak *= 1 - prob_leak[i]
+        if verbose == 0:
+            print("Layer error: " + str(1-layer_success_swap) + " (swap), " + str(1-layer_success_leak) + " (leak).")
+
         #print(1 - success, 1-swap_success, 1-leak_success)
     return 1 - success, 1-swap_success, 1-leak_success

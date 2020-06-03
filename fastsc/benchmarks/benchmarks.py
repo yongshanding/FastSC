@@ -19,9 +19,9 @@ def get_circuit(numQ, circ_name, dep=0):
     elif circ_name == 'ising':
         return get_ising_circuit(numQ)
     elif circ_name == 'parallel_cnot':
-        return get_parallel_cnot()
+        return get_parallel_cnot(numQ)
     elif circ_name == 'parallel_swap':
-        return get_parallel_swap()
+        return get_parallel_swap(numQ)
     elif circ_name == 'xeb':
         return get_xeb_circuit(numQ,dep)
     elif circ_name == 'xeb_iswap':
