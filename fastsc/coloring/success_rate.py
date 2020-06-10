@@ -24,7 +24,6 @@ def compute_decoherence(device, ir):
         decoh *= math.exp(-1.*t2/T1_tilde-t2/T2_tilde)
     return 1.0 - decoh
 
-# TODO: add single qubit errors: single_qb_err = 0.0015
 def compute_crosstalk_by_layer(device, ir, verbose=1):
     # returns error rate of simultaneous iswaps
     success = 1.0
@@ -33,6 +32,7 @@ def compute_crosstalk_by_layer(device, ir, verbose=1):
     Cqq = device.cqq
     ALPHA = device.alpha
     coupling = device.coupling
+    error_1q_gate = device.error_1q_gate
     num_coupling = len(coupling)
     # one complete swap: tau = pi/2g
     for (insts, freqs, gt, coup_factors) in ir.data:
@@ -91,7 +91,7 @@ def compute_crosstalk_by_layer(device, ir, verbose=1):
         leak_success *= layer_avg_leak
         if verbose == 0:
             print("Layer avg error: " + str(1-layer_avg_swap) + " (swap), " + str(1-layer_avg_leak) + " (leak).")
-
     success = swap_success * leak_success
+    success *= (1 - error_1q_gate)**num_1qg
     print(1 - success, 1-swap_success, 1-leak_success)
     return 1 - success, 1-swap_success, 1-leak_success

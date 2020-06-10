@@ -22,7 +22,7 @@ class Device(object):
     """
     Fields:
     """
-    def __init__(self, side_length, omega_max, delta_int, delta_ext, delta_park, cqq=0.019, alpha=-0.2, EJS=8, EJL=20, EC=0.5, flux_sigma=0.0, coupling=None):
+    def __init__(self, side_length, omega_max, delta_int, delta_ext, delta_park, cqq=0.019, alpha=-0.2, EJS=8, EJL=20, EC=0.5, flux_sigma=0.0, coupling=None, error_1q_gate=0.001):
         self.qubits = side_length*side_length
         self.side_length = side_length
         self.omega_max = omega_max
@@ -41,6 +41,7 @@ class Device(object):
         else:
             self.coupling = coupling
         self.gate_times = GATETIMES
+        self.error_1q_gate = error_1q_gate
 
 class Sycamore_device(object):
     def __init__(self, device, size, res_coupling=0.0):

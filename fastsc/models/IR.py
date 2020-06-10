@@ -30,6 +30,7 @@ class IR(object):
         self.width = width
         self.t_act = None
         self.t_2q = None
+        self.num_1qg = 0
         self.depth_before = 0
         self.depth_after = 0
         self.total_time = None
@@ -55,9 +56,13 @@ class IR(object):
                     print("Warning: Qubit " + str(q.index) + " cannot be used twice in one time step.")
                 else:
                    active.append(inst.qargs[i])
-                if int_freq is not None:
+                if int_freq != None:
+                    # two-qubit gate
                     freqs[inst.qargs[i].index][0] = int_freq[i] # omega01
                     freqs[inst.qargs[i].index][1] = int_freq[i] + self.alpha # omega12
+            if int_freq == None:
+                # single-qubit gate
+                self.num_1qg += 1
             if inst.gate_time >= gt:
                 gt = inst.gate_time
         self.data.append((insts, freqs, gt, coupling_factors))
