@@ -13,7 +13,7 @@ print("Importing fastsc...")
 import fastsc
 #from fastsc.coloring import success_rate_rand_coloring, success_rate_full_coloring, success_rate_layer_coloring, success_rate_google_like
 
-from fastsc.coloring import static_coloring, color_dynamic, google_like
+from fastsc.coloring import static_coloring, color_dynamic, google_like, color_opt
 from fastsc.coloring import compute_decoherence, compute_crosstalk_by_layer
 from fastsc.models import Device, Sycamore_device
 from fastsc.benchmarks import get_circuit
@@ -96,6 +96,16 @@ def simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=0, li
         d_before, d_after = ir.depth_before, ir.depth_after  
         total_time, max_colors = ir.total_time, ir.max_colors
         #sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_google_like(device, circ, scheduler, dist, decomp, outputfile, verbose)
+    elif (freq == 'opt'):
+        # Layered coloring
+        ir = color_opt(device, circ, scheduler, dist, decomp, lim_colors, verbose)
+        err, swap_err, leak_err = compute_crosstalk_by_layer(device, ir, verbose)
+        success = 1. - err
+        qb_err = compute_decoherence(device, ir)
+        success = success * (1. - qb_err)
+        d_before, d_after = ir.depth_before, ir.depth_after  
+        total_time, max_colors = ir.total_time, ir.max_colors
+        #sr, avg, worst, d_before, d_after, t, c, t_act, t_2q = success_rate_layer_coloring(device, circ, scheduler, dist, decomp, outputfile, lim_colors, verbose)
     else:
         success = 0.0
         swap_err = 0.0
@@ -152,7 +162,7 @@ def main():
             mapper = a
         elif o in ("-s", "--scheduler"): # qiskit, greedy, tiling
             scheduler = a
-        elif o in ("-f", "--frequency"): # (qoc,) random, full, layer, google
+        elif o in ("-f", "--frequency"): # full, layer, google, opt
             freq = a
         elif o in ("-x", "--crosstalk"): # 1, 2, 3
             dist = int(a)

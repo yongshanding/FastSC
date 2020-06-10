@@ -8,8 +8,10 @@ from .google_like import google_like
 
 from .color_dynamic import color_dynamic
 
+from .color_opt import color_opt
+
 from .success_rate import compute_decoherence, compute_crosstalk_by_layer
 
 from .util import relabel_coloring, get_qubits, decompose_layer_flexible, decompose_layer, reschedule_layer
 
-__all__ = ['static_coloring', 'google_like', 'color_dynamic', 'compute_decoherence', 'compute_crosstalk_by_layer']
+__all__ = ['static_coloring', 'google_like', 'color_dynamic', 'color_opt', 'compute_decoherence', 'compute_crosstalk_by_layer']
