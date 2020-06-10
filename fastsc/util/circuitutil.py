@@ -11,7 +11,8 @@ import pickle
 #from qiskit.transpiler import PassManager, transpile
 #from qiskit.transpiler.passes import (BasicSwap, CXCancellation, HCancellation)
 
-from qiskit import Aer, BasicAer, QuantumCircuit, QuantumRegister, execute
+#from qiskit import Aer, BasicAer, 
+from qiskit import QuantumCircuit, QuantumRegister, execute
 from qiskit.extensions.standard import *
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler import PassManager, CouplingMap
@@ -30,21 +31,21 @@ import networkx as nx
 # See Gate_Times.ipnyb for determination of these pulse times
 GATE_TO_PULSE_TIME = {'h': 1.4, 'cx': 3.8, 'rz': 0.4, 'rx': 2.5, 'x': 2.5, 'swap': 7.4, 'id': 0.0}
 
-unitary_backend = BasicAer.get_backend('unitary_simulator')
-state_backend = Aer.get_backend('statevector_simulator')
+#unitary_backend = BasicAer.get_backend('unitary_simulator')
+#state_backend = Aer.get_backend('statevector_simulator')
 
 ### FUNCTIONS ###
 
-def get_unitary(circuit):
-    """Given a qiskit circuit, produce a unitary matrix to represent it.
-    Args:
-    circuit :: qiskit.QuantumCircuit - an arbitrary quantum circuit
-    Returns:
-    matrix :: np.matrix - the unitary representing the circuit
-    """
-    job = execute(circuit, unitary_backend)
-    unitary = job.result().get_unitary(circuit, decimals=10)
-    return np.matrix(unitary)
+#def get_unitary(circuit):
+#    """Given a qiskit circuit, produce a unitary matrix to represent it.
+#    Args:
+#    circuit :: qiskit.QuantumCircuit - an arbitrary quantum circuit
+#    Returns:
+#    matrix :: np.matrix - the unitary representing the circuit
+#    """
+#    job = execute(circuit, unitary_backend)
+#    unitary = job.result().get_unitary(circuit, decimals=10)
+#    return np.matrix(unitary)
 
 def get_map_circuit(circuit, coupling_list=None):
 

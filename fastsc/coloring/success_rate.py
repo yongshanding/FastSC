@@ -92,6 +92,6 @@ def compute_crosstalk_by_layer(device, ir, verbose=1):
         if verbose == 0:
             print("Layer avg error: " + str(1-layer_avg_swap) + " (swap), " + str(1-layer_avg_leak) + " (leak).")
     success = swap_success * leak_success
-    success *= (1 - error_1q_gate)**num_1qg
+    success *= (1 - error_1q_gate) ** ir.num_1qg
     print(1 - success, 1-swap_success, 1-leak_success)
     return 1 - success, 1-swap_success, 1-leak_success
