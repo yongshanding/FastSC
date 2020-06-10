@@ -3,7 +3,7 @@ from .bv import get_bv_circuit
 from .qaoa import get_qaoa_circuit
 from .qgan import get_qgan_circuit
 from .ising import get_ising_circuit
-from .parallel_cnot import get_parallel_cnot
+from .parallel_cnot import get_parallel_cnot, get_parallel_cnot_barriers
 from .parallel_swap import get_parallel_swap
 from .xeb import get_xeb_circuit, get_xeb_iswap_circuit, get_xeb_iswap_barriers_circuit
 
@@ -19,7 +19,9 @@ def get_circuit(numQ, circ_name, dep=0):
     elif circ_name == 'ising':
         return get_ising_circuit(numQ)
     elif circ_name == 'parallel_cnot':
-        return get_parallel_cnot(numQ)
+        return get_parallel_cnot(numQ, dep)
+    elif circ_name == 'parallel_cnot_barrier':
+        return get_parallel_cnot_barriers(numQ, dep)
     elif circ_name == 'parallel_swap':
         return get_parallel_swap(numQ)
     elif circ_name == 'xeb':
