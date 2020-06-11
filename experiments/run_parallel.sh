@@ -38,7 +38,7 @@ do
         ./run.sh ${test_array[$i]} ${qq} &
         pids[${p}]=$!
         p=$((p+1))
-        
+
     done
 
 done
@@ -49,4 +49,3 @@ for pid in ${pids[*]}; do
 done
 
 echo "End simulation."
-
