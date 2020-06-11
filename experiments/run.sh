@@ -25,7 +25,7 @@ for i in {1..5}; do
     python3 frequency_simulate.py -i ${FILE} -q $qq -m qiskit -s qiskit -f full -x 1 -d flexible -c 0 -v 1 -n 0 > ${FILE}_res/q$qq-full.circ
     echo "--- ${FILE} full q${qq} ---">> ${FILE}_res/q${qq}.out
     tail -n 8 ${FILE}_res/q$qq-full.circ >> ${FILE}_res/q${qq}.out
-    python3 frequency_simulate.py -i ${FILE} -q $qq -m qiskit -s qiskit -f google -x 1 -d flexible -c 0 -v 1 -n 0 -r 0.0 > ${FILE}_res/q$qq-google.circ
+    python3 frequency_simulate.py -i ${FILE} -q $qq -m qiskit -s tiling -f google -x 1 -d flexible -c 0 -v 1 -n 0 -r 0.0 > ${FILE}_res/q$qq-google.circ
     echo "--- ${FILE} google q${qq} ---">> ${FILE}_res/q${qq}.out
     tail -n 8 ${FILE}_res/q$qq-google.circ >> ${FILE}_res/q${qq}.out
 done
