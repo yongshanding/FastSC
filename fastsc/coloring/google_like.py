@@ -242,7 +242,8 @@ def google_like(device, circuit, scheduler, d, decomp, verbose, res_coup=0.0):
             for (iid,layer) in enumerate(resched_layer):
                 if (scheduler == 'tiling'):
                     tiling_idx = patterns[iid]
-                    print("tiling_idx", tiling_idx)
+                    if verbose == 0:
+                        print("tiling_idx", tiling_idx)
                 print(layer.qasm())
                 insts = []
                 edges = []

@@ -114,7 +114,7 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
                 resched_layer = decomp_layer
             #print("Layers: %d %d" % (len(decomp_layer), len(resched_layer)))
             for layer in resched_layer:
-                print(layer)
+                print(layer.qasm())
                 insts = []
                 #edges = []
                 #edges_cphase = [] # if (q1,q2) is in it, then (q2,q1) is also in it

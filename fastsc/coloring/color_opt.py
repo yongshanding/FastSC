@@ -8,13 +8,14 @@ from fastsc.models import Sycamore_device
 import z3
 
 
-def smt_find(smt_dict, omega_lo, omega_hi, num_color, alpha, threshold = None):
+def smt_find(smt_dict, omega_lo, omega_hi, num_color, alpha, verbose, threshold = None):
     # concert omega and alpha to MHz, so that they are int
     omega_lo = int(omega_lo * 1000)
     omega_hi = int(omega_hi * 1000)
     alpha = int(alpha * 1000)
     if (omega_lo, omega_hi, num_color, alpha) in smt_dict:
-        print("Found existed entry.")
+        if verbose == 0:
+            print("Found existed entry.")
         return smt_dict[(omega_lo, omega_hi, num_color, alpha)]
     if threshold != None:
         threshold = int(threshold * 1000)
@@ -24,9 +25,11 @@ def smt_find(smt_dict, omega_lo, omega_hi, num_color, alpha, threshold = None):
         max_iter = 10
         it = 0
         thr = thr_lo
-        print("Start: ", thr_lo, thr_hi, num_color)
+        if verbose == 0:
+            print("Start: ", thr_lo, thr_hi, num_color)
         while it <= max_iter and thr_hi - thr_lo > 1:
-            print("iter", it)
+            if verbose == 0:
+                print("iter", it)
             thr = thr_lo + (thr_hi - thr_lo) // 2
             c = [z3.Int('c%d' % i) for i in range(num_color)]        
             s = z3.Solver()
@@ -43,7 +46,8 @@ def smt_find(smt_dict, omega_lo, omega_hi, num_color, alpha, threshold = None):
             it += 1
         threshold = thr
 
-    print("Threshold: ", threshold)
+    if verbose == 0:
+        print("Threshold: ", threshold)
     c = [z3.Int('c%d' % i) for i in range(num_color)]        
     s = z3.Solver()
     for i in range(num_color):
@@ -58,7 +62,8 @@ def smt_find(smt_dict, omega_lo, omega_hi, num_color, alpha, threshold = None):
         result = (True, [float(m.evaluate(c[i]).as_long())/1000.0 for i in range(num_color)])
     else:
         result = (False, [])
-    print(result)
+    if verbose == 0:
+        print(result)
     smt_dict[(omega_lo, omega_hi, num_color, alpha)] = result
     return result
 
@@ -90,30 +95,33 @@ def color_opt(device, circuit, scheduler, d, decomp, lim_colors, verbose):
     def _build_park_color_map():
         # negative colors for parking, non-negative colors for interaction.
         colormap = dict()
-        (sat, omegas) = smt_find(smt_dict, omega_min, omega_min + delta_park, num_park, ALPHA, None)
+        (sat, omegas) = smt_find(smt_dict, omega_min, omega_min + delta_park, num_park, ALPHA, verbose, None)
         if not sat:
             step_park = delta_park / num_park
             omegas = [omega_max - delta_int - delta_ext - c * step_park for c in num_park]
-            print("Warning: SMT not satisfied for idle freq.")
+            if verbose == 0:
+                print("Warning: SMT not satisfied for idle freq.")
         for c in range(num_park):
             colormap[str(-(c+1))] = omegas[c]
         return colormap
 
     def _add_int_color_map(colormap, n_int):
         if decomp == 'cphase' or decomp == 'flexible':
-            (sat, omegas) = smt_find(smt_dict, omega_max-delta_int, omega_max + ALPHA, n_int, ALPHA, None)
+            (sat, omegas) = smt_find(smt_dict, omega_max-delta_int, omega_max + ALPHA, n_int, ALPHA, verbose, None)
             if not sat:
                 step_int = (delta_int + ALPHA) / n_int
                 omegas = [omega_max + ALPHA - c * step_int for c in range(n_int)]
-                print("Warning: SMT not satisfied for int freq.")
+                if verbose == 0:
+                    print("Warning: SMT not satisfied for int freq.")
             for c in range(n_int):
                 colormap[str(c)] = omegas[c]
         else:
-            (sat, omegas) = smt_find(smt_dict, omega_max-delta_int, omega_max, n_int, ALPHA, None)
+            (sat, omegas) = smt_find(smt_dict, omega_max-delta_int, omega_max, n_int, ALPHA, verbose, None)
             if not sat:
                 step_int = delta_int / n_int
                 omegas = [omega_max - c * step_int for c in range(n_int)]
-                print("Warning: SMT not satisfied for int freq.")
+                if verbose == 0:
+                    print("Warning: SMT not satisfied for int freq.")
             for c in range(n_int):
                 colormap[str(c)] = omegas[c]
 
