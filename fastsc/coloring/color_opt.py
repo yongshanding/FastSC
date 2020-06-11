@@ -4,6 +4,65 @@ import numpy as np
 from fastsc.models import IR, Qbit, Inst
 from .util import relabel_coloring, get_qubits, decompose_layer, decompose_layer_flexible, reschedule_layer, limit_colors, get_max_time
 
+from fastsc.models import Sycamore_device
+import z3
+
+
+def smt_find(smt_dict, omega_lo, omega_hi, num_color, alpha, threshold = None):
+    # concert omega and alpha to MHz, so that they are int
+    omega_lo = int(omega_lo * 1000)
+    omega_hi = int(omega_hi * 1000)
+    alpha = int(alpha * 1000)
+    if (omega_lo, omega_hi, num_color, alpha) in smt_dict:
+        print("Found existed entry.")
+        return smt_dict[(omega_lo, omega_hi, num_color, alpha)]
+    if threshold != None:
+        threshold = int(threshold * 1000)
+    else:
+        thr_lo = -alpha // 10
+        thr_hi = (omega_hi-omega_lo)//num_color
+        max_iter = 10
+        it = 0
+        thr = thr_lo
+        print("Start: ", thr_lo, thr_hi, num_color)
+        while it <= max_iter and thr_hi - thr_lo > 1:
+            print("iter", it)
+            thr = thr_lo + (thr_hi - thr_lo) // 2
+            c = [z3.Int('c%d' % i) for i in range(num_color)]        
+            s = z3.Solver()
+            for i in range(num_color):
+                s.add(c[i] > omega_lo, c[i] < omega_hi)
+            for i in range(num_color):
+                for j in range(num_color):
+                    if i != j:
+                        s.add((c[i]-c[j])**2 > thr**2, (c[i]-c[j]+alpha)**2 > thr**2)
+            if s.check() == z3.sat:
+                thr_lo = thr + 1
+            else:
+                thr_hi = thr - 1
+            it += 1
+        threshold = thr
+
+    print("Threshold: ", threshold)
+    c = [z3.Int('c%d' % i) for i in range(num_color)]        
+    s = z3.Solver()
+    for i in range(num_color):
+        s.add(c[i] > omega_lo, c[i] < omega_hi)
+    for i in range(num_color):
+        for j in range(num_color):
+            if i != j:
+                s.add((c[i]-c[j])**2 > threshold**2, (c[i]-c[j]+alpha)**2 > threshold**2)
+ 
+    if s.check() == z3.sat:
+        m = s.model()
+        result = (True, [float(m.evaluate(c[i]).as_long())/1000.0 for i in range(num_color)])
+    else:
+        result = (False, [])
+    print(result)
+    smt_dict[(omega_lo, omega_hi, num_color, alpha)] = result
+    return result
+
+
 
 def color_opt(device, circuit, scheduler, d, decomp, lim_colors, verbose):
     freqsdata = []
@@ -12,6 +71,7 @@ def color_opt(device, circuit, scheduler, d, decomp, lim_colors, verbose):
     height = device.side_length
     num_q = width * height
     omega_max = device.omega_max
+    omega_min = device.omega_min
     delta_int = device.delta_int
     delta_ext= device.delta_ext
     delta_park = device.delta_park
@@ -25,26 +85,37 @@ def color_opt(device, circuit, scheduler, d, decomp, lim_colors, verbose):
     Cqq = device.cqq
 
     q_arr = get_qubits(circuit)
+    smt_dict = dict()
 
     def _build_park_color_map():
         # negative colors for parking, non-negative colors for interaction.
-        step_park = delta_park / num_park
-        #step_int = delta_int / num_int
         colormap = dict()
-        #for c in range(num_int):
-        #    colormap[str(c)] = omega_max - c * step_int
+        (sat, omegas) = smt_find(smt_dict, omega_min, omega_min + delta_park, num_park, ALPHA, None)
+        if not sat:
+            step_park = delta_park / num_park
+            omegas = [omega_max - delta_int - delta_ext - c * step_park for c in num_park]
+            print("Warning: SMT not satisfied for idle freq.")
         for c in range(num_park):
-            colormap[str(-(c+1))]= omega_max - delta_int - delta_ext - c * step_park
+            colormap[str(-(c+1))] = omegas[c]
         return colormap
+
     def _add_int_color_map(colormap, n_int):
         if decomp == 'cphase' or decomp == 'flexible':
-            step_int = (delta_int + ALPHA) / n_int
+            (sat, omegas) = smt_find(smt_dict, omega_max-delta_int, omega_max + ALPHA, n_int, ALPHA, None)
+            if not sat:
+                step_int = (delta_int + ALPHA) / n_int
+                omegas = [omega_max + ALPHA - c * step_int for c in range(n_int)]
+                print("Warning: SMT not satisfied for int freq.")
             for c in range(n_int):
-                colormap[str(c)] = omega_max + ALPHA - c * step_int
+                colormap[str(c)] = omegas[c]
         else:
-            step_int = delta_int / n_int
+            (sat, omegas) = smt_find(smt_dict, omega_max-delta_int, omega_max, n_int, ALPHA, None)
+            if not sat:
+                step_int = delta_int / n_int
+                omegas = [omega_max - c * step_int for c in range(n_int)]
+                print("Warning: SMT not satisfied for int freq.")
             for c in range(n_int):
-                colormap[str(c)] = omega_max - c * step_int
+                colormap[str(c)] = omegas[c]
 
     color_to_freq = _build_park_color_map()
     def _park_freq(c):

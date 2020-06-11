@@ -30,7 +30,7 @@ from fastsc.benchmarks import get_circuit
 omega_max = 7 #GHz
 delta_int = 1.0
 delta_ext= 0.5
-delta_park = 1.0
+delta_park = 0.5
 alpha = -0.2
 ejs = 8
 ejl = 20
