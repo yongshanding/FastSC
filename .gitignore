@@ -9,6 +9,9 @@
 **/*.png
 **/*.h5
 **/*.hdf5
+**/*.circ
+**/*.out
+
 
 # Ignore ipnyb checkpoints.
 .ipynb_checkpoints/

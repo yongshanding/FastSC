@@ -126,8 +126,8 @@ def simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=0, li
 ###########################################################
 
 def main():
-    random.seed(60615)
-    np.random.seed(60615)
+    #random.seed(60615)
+    #np.random.seed(60615)
     circuit = None
     qubits = 0
     mapper = None
