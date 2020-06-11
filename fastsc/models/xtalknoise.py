@@ -39,7 +39,7 @@ def leak_channel(coupling, residual_factors, qubit_01freqs, qubit_12freqs, taus,
             residual_coupling = (np.sqrt(2)*J)**2 / (delta_omega * 4 * np.pi)
         tau = taus[(q1,q2)]
         epsilon_leak02 = residual_factors[i]*np.sin(residual_coupling * tau)**2
-        print("delta_omega: ", delta_omega, "epsilon_leak: ", epsilon_leak02)
+        #print("delta_omega: ", delta_omega, "epsilon_leak: ", epsilon_leak02)
         res.append(epsilon_leak02)
     return res
 
