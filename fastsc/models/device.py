@@ -47,7 +47,7 @@ class Sycamore_device(object):
     def __init__(self, device, size, res_coupling=0.0):
         if size != device.qubits:
             print("Warning: device size inconsistent. Device: " + str(device.qubits) + ", Sycamore_device: " + str(size))
-        if size not in [4,9,16]:
+        if size not in [4,9,16,25]:
             raise Exception("Wrong device size")
         if size == 4:
             self.int_freqs = {(0,1):6.619, (0,2):6.65, (1,3):6.657, (2,3):6.677}
@@ -55,7 +55,7 @@ class Sycamore_device(object):
         elif size == 9:
             self.park_freqs = {0:6.605,1:6.638,2:6.565,3:6.694,4:6.681,5:6.601,6:6.643,7:6.621,8:6.646}
             self.int_freqs = {(0,1):6.619, (1,2):6.601, (3,4):6.677, (4,5):6.635, (6,7):6.631, (7,8):6.646, (0,3):6.65, (1,4):6.657, (2,5):6.585, (3,6):6.667, (4,7):6.645,(5,8):6.646}
-        else:
+        elif size == 16:
             self.park_freqs = {0:6.605,1:6.638,2:6.565,3:6.555,4:6.694,5:6.681,6:6.601,7:6.626,8:6.643,9:6.621,10:6.646,11:6.657,12:6.712,13:6.671,14:6.586,15:6.623}
             self.int_freqs = {(0,1):6.619,(1,2):6.601,(2,3):6.565,(4,5):6.677,(5,6):6.635,(6,7):6.595}
             self.int_freqs[(8,9)] = 6.631
@@ -76,6 +76,47 @@ class Sycamore_device(object):
             self.int_freqs[(9,13)] = 6.645
             self.int_freqs[(10,14)] = 6.646
             self.int_freqs[(11,15)] = 6.633
+        else: # size == 25
+            self.park_freqs = {0:6.612,1:6.571,2:6.605,3:6.638,4:6.565,5:6.687,6:6.661,7:6.694,8:6.681,9:6.601,10:6.634,11:6.628,12:6.643,13:6.621,14:6.646,15:6.707,16:6.665,17:6.712,18:6.671,19:6.586,20:6.775,21:6.734,22:6.766,23:6.729,24:6.594}
+            self.int_freqs = {(0,1):6.592,(1,2):6.589,(2,3):6.619,(3,4):6.601}
+            self.int_freqs[(5,6)] = 6.675
+            self.int_freqs[(6,7)] = 6.678
+            self.int_freqs[(7,8)] = 6.677
+            self.int_freqs[(8,9)] = 6.635
+            self.int_freqs[(10,11)] = 6.628
+            self.int_freqs[(11,12)] = 6.632
+            self.int_freqs[(12,13)] = 6.631
+            self.int_freqs[(13,14)] = 6.646
+            self.int_freqs[(15,16)] = 6.693
+            self.int_freqs[(16,17)] = 6.690
+            self.int_freqs[(17,18)] = 6.690
+            self.int_freqs[(18,19)] = 6.631
+            self.int_freqs[(20,21)] = 6.753
+            self.int_freqs[(21,22)] = 6.766
+            self.int_freqs[(22,23)] = 6.743
+            self.int_freqs[(23,24)] = 6.594
+
+            self.int_freqs[(0,5)] = 6.648
+            self.int_freqs[(1,6)] = 6.617
+            self.int_freqs[(2,7)] = 6.650
+            self.int_freqs[(3,8)] = 6.657
+            self.int_freqs[(4,9)] = 6.585
+            self.int_freqs[(5,10)] = 6.660
+            self.int_freqs[(6,11)] = 6.640
+            self.int_freqs[(7,12)] = 6.667
+            self.int_freqs[(8,13)] = 6.645
+            self.int_freqs[(9,14)] = 6.646
+            self.int_freqs[(10,15)] = 6.670
+            self.int_freqs[(11,16)] = 6.646
+            self.int_freqs[(12,17)] = 6.680
+            self.int_freqs[(13,18)] = 6.645
+            self.int_freqs[(14,19)] = 6.646
+            self.int_freqs[(15,20)] = 6.741
+            self.int_freqs[(16,21)] = 6.704
+            self.int_freqs[(17,22)] = 6.712
+            self.int_freqs[(18,23)] = 6.703
+            self.int_freqs[(19,24)] = 6.594
+
         self.res_coupling = res_coupling
         omega_max = max(self.int_freqs.values())
         omega_min = min(self.int_freqs.values())
