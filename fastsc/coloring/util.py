@@ -293,7 +293,7 @@ def reschedule_layer(layers, coupling, verbose):
                 # Multi-qubit gates; Barrier?
                 numq = len(qargs)
                 conf = False
-                for qii in xrange(numq):
+                for qii in range(numq):
                     qi = qargs[qii].index
                     if (qi in active_q):
                         conf = True
