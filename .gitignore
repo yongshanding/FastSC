@@ -11,6 +11,7 @@
 **/*.hdf5
 **/*.circ
 **/*.out
+**/*.err
 
 
 # Ignore ipnyb checkpoints.
