@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#test_array=( "bv" "qaoa" "ising" "qgan" "xeb_iswap_p5" "xeb_iswap_p10" "xeb_iswap_p15" )
-test_array=( "bv" )
+test_array=( "bv" "qgan" "qaoa" "ising" "xeb_iswap_barrier_p5" "xeb_iswap_barrier_p10" "xeb_iswap_barrier_p15" )
+#test_array=( "xeb_iswap_barrier_p5" )
 
 # Clean up
 for arg in "$@"
