@@ -39,7 +39,7 @@ def main():
                 out_str += str(avg_success['opt']) + ", "
                 out_str += str(avg_success['uniform']) + ", "
                 out_str += str(avg_success['naive']) + "\n"
-    #print(out_str)
+    print(out_str)
 
 def mean(s):
     return sum(s)/len(s)
