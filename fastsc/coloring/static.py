@@ -188,6 +188,8 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
                 #print(qubit_freqs)
                 if not barrier:
                     ir.append_layer_from_insts(insts)
+                    qb_freqs = [q_omega[0] for q_omega in ir.data[-1][1]]
+                    print(qb_freqs)
                     gt = get_max_time(gt, taus)
                     tot_cnt += 1
                     if gt > layer_time: layer_time = gt
