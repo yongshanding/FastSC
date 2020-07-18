@@ -69,28 +69,30 @@ def compute_crosstalk_by_layer(device, ir, verbose=1):
         #print("swap: ", prob_swap)
         #print("leak: ", prob_leak)
         layer_avg_swap, layer_avg_leak = 0.0, 0.0 # average success per layer
+        #layer_swap, layer_leak = 1.0, 1.0 # success per layer
         for (i, (q1,q2)) in enumerate(coupling):
             if (q1,q2) in iswaps or (q2,q1) in iswaps:
                 #success *= prob_swap[i]
                 #swap_success *= prob_swap[i]
-                layer_avg_swap += prob_swap[i]
+                tmp_swap = prob_swap[i]
             elif (q1,q2) in sqrtiswaps or (q2,q1) in sqrtiswaps:
                 #success *= 1 - abs(0.5-prob_swap[i])
                 #swap_success *= 1 - abs(0.5-prob_swap[i])
-                layer_avg_swap += 1 - abs(0.5-prob_swap[i])
+                tmp_swap = 1 - abs(0.5-prob_swap[i])
             else:
                 #success *= 1 - prob_swap[i]
                 #swap_success *= 1 - prob_swap[i]
-                layer_avg_swap += 1 - prob_swap[i]
-            #success *= 1 - prob_leak[i]
-            #leak_success *= 1 - prob_leak[i]
+                tmp_swap = 1 - prob_swap[i]
+
+            layer_avg_swap += tmp_swap
             layer_avg_leak += 1 - prob_leak[i]
+            #layer_swap *= tmp_swap
+            #layer_leak *= 1 - prob_leak[i]
         layer_avg_swap /= num_coupling
         layer_avg_leak /= num_coupling
+        print("Layer swap error: " + str(1.0-layer_avg_swap) + ", leak error: " + str(1.0-layer_avg_leak))
         swap_success *= layer_avg_swap
         leak_success *= layer_avg_leak
-        if verbose == 0:
-            print("Layer avg error: " + str(1-layer_avg_swap) + " (swap), " + str(1-layer_avg_leak) + " (leak).")
     success = swap_success * leak_success
     success *= (1 - error_1q_gate) ** ir.num_1qg
     if verbose == 0:
