@@ -1,4 +1,4 @@
-from fastsc.util import get_connectivity_graph, get_aug_line_graph, get_map_circuit, get_layer_circuits, get_nearest_neighbor_coupling_list, gen_tiling_pattern
+from fastsc.util import get_connectivity_graph, get_aug_line_graph, get_map_circuit, get_layer_circuits, gen_tiling_pattern
 import networkx as nx
 import numpy as np
 from ..models import Sycamore_device, IR, Qbit, Inst

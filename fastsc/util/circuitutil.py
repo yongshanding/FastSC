@@ -67,7 +67,7 @@ def get_map_circuit(circuit, coupling_list=None):
 
     return optimized_circuit
 
-def get_nearest_neighbor_coupling_list(width, height, directed=True):
+def get_grid_coupling_list(width, height, directed=True):
     """Returns a coupling list for nearest neighbor (rectilinear grid) architecture.
     Qubits are numbered in row-major order with 0 at the top left and
     (width*height - 1) at the bottom right.

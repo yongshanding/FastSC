@@ -141,23 +141,24 @@ def main():
     uniform_freq = 0
     sigma = 0.0
     res_coupling = 0.0
+    topology = None
     try:
-        opt, args = getopt.getopt(sys.argv[1:], "hi:p:m:s:f:x:d:q:c:v:u:n:r:", ["help", "input=", "depth=", "mapper=", "scheduler=", "frequency=", "crosstalk=", "decomposition=", "qubits=","colors=","verbose=","uniform_freq=","noise=","res_coupling="])
+        opt, args = getopt.getopt(sys.argv[1:], "hi:p:m:s:f:x:d:q:c:v:u:n:r:t:", ["help", "input=", "depth=", "mapper=", "scheduler=", "frequency=", "crosstalk=", "decomposition=", "qubits=","colors=","verbose=","uniform_freq=","noise=","res_coupling=", "topology="])
     except getopt.GetOptError as err:
         print(err)
-        print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -p <depth of supremacy circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity=1: less verbose> -u <uniform_freq=0> -n <flux noise=0.0> -r <res_coupling>")
+        print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -p <depth of supremacy circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity=1: less verbose> -u <uniform_freq=0> -n <flux noise=0.0> -r <res_coupling> -t <topology>")
         sys.exit(2)
     usage = True
     for o,a in opt:
         usage = False
         if o in ("-h", "--help"):
-            print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -p <depth of supremacy circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity=1: less verbose> -u <uniform_freq=0> -n <flux noise=0.0> -r <res_coupling>")
+            print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -p <depth of supremacy circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity=1: less verbose> -u <uniform_freq=0> -n <flux noise=0.0> -r <res_coupling> -t <topology>")
             sys.exit()
-        elif o in ("-i", "--input"): # bv, qft,
+        elif o in ("-i", "--input"): # bv, qgan, qaoa, ising, xeb_iswap_barrier
             circuit = a
-        elif o in ("-q", "--qubits"): # 4, 16
+        elif o in ("-q", "--qubits"): # 4, 9, 16, 25, ...
             qubits = int(a)
-        elif o in ("-p", "--depth"):
+        elif o in ("-p", "--depth"): # parameter for xeb experiments
             depth = int(a)
         elif o in ("-m", "--mapper"): # qiskit
             mapper = a
@@ -167,25 +168,27 @@ def main():
             freq = a
         elif o in ("-x", "--crosstalk"): # 1, 2, 3
             dist = int(a)
-        elif o in ("-d", "--decomposition"): # iswap, cphase
+        elif o in ("-d", "--decomposition"): # iswap, cphase, flexible
             decomp = a
-        elif o in ("-c", "--colors"):
+        elif o in ("-c", "--colors"): # 0, 1, 2, ...
             lim_colors = int(a)
-        elif o in ("-v", "--verbose"):
+        elif o in ("-v", "--verbose"): # 0 (print trace), 1 (only circuit output)
             verbose = int(a)
-        elif o in ("-u", "--uniform_freq"):
+        elif o in ("-u", "--uniform_freq"): # 0, 1 (uniform freq assignment)
             uniform_freq = int(a)
-        elif o in ("-n", "--noise"):
+        elif o in ("-n", "--noise"): # 0.01 (std dev in flux noise) 
             sigma = float(a)
-        elif o in ("-r", "--res_coupling"):
+        elif o in ("-r", "--res_coupling"): # 0.0, 0.1, ... (residual coupling factor)
             res_coupling = float(a)
+        elif o in ("-t", "--topology"): # grid, 
+            topology = a
         else:
-            print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -p <depth of supremacy circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity=1: less verbose> -u <uniform_freq=0> -n <flux noise=0.0> -r <res_coupling>")
+            print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -p <depth of supremacy circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity=1: less verbose> -u <uniform_freq=0> -n <flux noise=0.0> -r <res_coupling> -t <topology>")
             sys.exit(2)
 
     if (usage):
         print("------")
-        print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -dep <depth of circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity=1: less verbose> -u <uniform_freq=0> -n <flux noise=0.0> -r <res_coupling>")
+        print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -dep <depth of circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity=1: less verbose> -u <uniform_freq=0> -n <flux noise=0.0> -r <res_coupling> -t <topology>")
         print("------")
 
     if (mapper == None): mapper = 'qiskit'
@@ -193,11 +196,12 @@ def main():
     if (freq == None): freq = 'full'
     if (dist == None): dist = 1
     if (decomp == None): decomp = 'iswap'
+    if (topology == None): topology = 'grid'
     #if (outputfile == None): outputfile = file_name
 
     side_length = int(np.sqrt(qubits))
 
-    device = Device(side_length, omega_max, delta_int, delta_ext, delta_park, cqq, alpha, ejs, ejl, ec)
+    device = Device(topology, qubits, omega_max, delta_int, delta_ext, delta_park, cqq, alpha, ejs, ejl, ec)
     start = time.time()
     # success, avg, worst, d_before, d_after, t, c, t_act, t_2q = simulate(device, circuit, mapper, scheduler, freq, dist, decomp, outputfile, depth=depth, lim_colors=lim_colors, verbose=verbose)
     success, swap_err, leak_err, qb_err, d_before, d_after, t, c = simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=depth, lim_colors=lim_colors, verbose=verbose, uniform_freq=uniform_freq, sigma=sigma, res_coupling=res_coupling)

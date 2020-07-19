@@ -1,4 +1,4 @@
-from fastsc.util import get_connectivity_graph, get_aug_line_graph, get_map_circuit, get_layer_circuits, get_nearest_neighbor_coupling_list
+from fastsc.util import get_connectivity_graph, get_aug_line_graph, get_map_circuit, get_layer_circuits 
 import networkx as nx
 import numpy as np
 from fastsc.models import IR, Qbit, Inst

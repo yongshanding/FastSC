@@ -14,18 +14,21 @@ def main():
         avg_success = {}
         avg_compile = {}
         avg_decohere = {}
+        avg_depth = {}
         path = o+'_res/'
-        for q in [4,9,16,25]:
+        #for q in [4,9,16,25]:
+        for q in [4]:
             filepath = path + "q" + str(q) + ".out"
             if not os.path.isfile(filepath):
                 print("File path {} does not exist. Exiting...".format(filepath))
                 sys.exit()
             with open(filepath) as fp:
                 out_str += o + "(" + str(q) + "), "
-                success_rate, compile_time, decohere_err = record_data(fp, f_options)
+                success_rate, compile_time, decohere_err, depth = record_data(fp, f_options)
                 avg_success = {k:mean(v) for (k,v) in success_rate.items()}
                 avg_compile = {k:mean(v) for (k,v) in compile_time.items()}
                 avg_decohere = {k:mean(v) for (k,v) in decohere_err.items()}
+                avg_depth = {k:int(mean(v)) for (k,v) in depth.items()}
                 #print(o + "(" + str(q) + ")")
                 #print("Success_rate:")
                 #print(avg_success)
@@ -39,6 +42,13 @@ def main():
                 out_str += str(avg_success['opt']) + ", "
                 out_str += str(avg_success['uniform']) + ", "
                 out_str += str(avg_success['naive']) + "\n"
+
+                #out_str += str(avg_depth['full']) + ", "
+                #out_str += str(avg_depth['layer']) + ", "
+                #out_str += str(avg_depth['google']) + ", "
+                #out_str += str(avg_depth['opt']) + ", "
+                #out_str += str(avg_depth['uniform']) + ", "
+                #out_str += str(avg_depth['naive']) + "\n"
     print(out_str)
 
 def mean(s):
@@ -55,6 +65,8 @@ def record_data(fp, f_options):
     header_compile = "Compilation time:"
     decohere_err = {f:[] for f in f_options}
     header_decohere = "Decoherence error:"
+    depth = {f:[] for f in f_options}
+    header_depth = "Circuit depth:"
     for (i, line) in enumerate(lines):
         #print("line {} contents {}".format(cnt, line))
         line = lines[i].strip().split(' ')
@@ -68,9 +80,12 @@ def record_data(fp, f_options):
                 compile_time[f].append(float(lines[i+7][len(header_compile)+1:-2]))
             if header_decohere in lines[i+6]:
                 decohere_err[f].append(float(lines[i+6][len(header_decohere)+1:]))
+            if header_depth in lines[i+4]:
+                tmp = lines[i+4][len(header_depth)+1:].strip().split(',')
+                depth[f].append(int(tmp[1]))
     #print(success_rate)
     #print(compile_time)
-    return success_rate, compile_time, decohere_err
+    return success_rate, compile_time, decohere_err, depth
 
 if __name__ == '__main__':
     main()

@@ -13,7 +13,7 @@ import random as rd
 import time
 import re, math
 from datetime import datetime
-from ..util import get_nearest_neighbor_coupling_list
+from ..util import get_grid_coupling_list
 
 
 GATETIMES = {'unitary': 55,'rz': 30, 'z':30, 'u1': 30, 's': 30, 't': 30, 'rx': 30, 'x': 30, 'u2': 30, 'ry': 30, 'y': 30, 'u3': 30, 'h': 30, 'measure': 0.0, 'barrier': 0.0} # all in ns
@@ -22,9 +22,13 @@ class Device(object):
     """
     Fields:
     """
-    def __init__(self, side_length, omega_max, delta_int, delta_ext, delta_park, cqq=0.019, alpha=-0.2, EJS=8, EJL=20, EC=0.5, flux_sigma=0.0, coupling=None, error_1q_gate=0.001):
-        self.qubits = side_length*side_length
-        self.side_length = side_length
+    def __init__(self, topology, qubits, omega_max, delta_int, delta_ext, delta_park, cqq=0.019, alpha=-0.2, EJS=8, EJL=20, EC=0.5, flux_sigma=0.0, error_1q_gate=0.001):
+        if (topology == None):
+            self.topology = 'grid'
+        else:
+            self.topology = topology
+        self.qubits = qubits
+        self.side_length = int(np.sqrt(qubits))
         self.omega_max = omega_max
         self.delta_int = delta_int
         self.delta_ext = delta_ext
@@ -36,10 +40,11 @@ class Device(object):
         self.ejl = EJL
         self.ec = EC
         self.flux_sigma = flux_sigma
-        if coupling==None:
-            self.coupling = get_nearest_neighbor_coupling_list(side_length, side_length)
+        if topology=='grid':
+            self.coupling = get_grid_coupling_list(self.side_length, self.side_length)
         else:
-            self.coupling = coupling
+            print("Topology not recognized.")
+            self.coupling = None
         self.gate_times = GATETIMES
         self.error_1q_gate = error_1q_gate
 
