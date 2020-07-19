@@ -48,11 +48,12 @@ class Device(object):
         self.error_1q_gate = error_1q_gate
 
     def build_graph(self, param=None):
+        supported = ['grid', 'erdosrenyi', 'cycle', 'wheel']
         if self.topology=='grid':
             self.g_connect = get_connectivity_graph(self.qubits, self.topology)
             self.coupling = get_grid_coupling_list(self.side_length, self.side_length)
             self.g_xtalk = get_crosstalk_graph(self.g_connect, self.topology, self.d_xtalk)
-        elif self.topology == 'erdosrenyi':
+        elif self.topology in supported:
             self.g_connect = get_connectivity_graph(self.qubits, self.topology, param)
             self.coupling = self.g_connect.edges()
             self.g_xtalk = get_crosstalk_graph(self.g_connect, self.topology, self.d_xtalk)

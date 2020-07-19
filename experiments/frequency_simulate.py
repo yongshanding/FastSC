@@ -181,10 +181,10 @@ def main():
             sigma = float(a)
         elif o in ("-r", "--res_coupling"): # 0.0, 0.1, ... (residual coupling factor)
             res_coupling = float(a)
-        elif o in ("-t", "--topology"): # grid, 
+        elif o in ("-t", "--topology"): # grid, erdosrenyi0.5, cycle, wheel
             topology = a
         else:
-            print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -p <depth of supremacy circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity=1: less verbose> -u <uniform_freq=0> -n <flux noise=0.0> -r <res_coupling> -t <topology>")
+            print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -p <depth of supremacy circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity=1: less verbose> -u <uniform_freq=0> -n <flux noise=0.0> -r <res_coupling> -t <topology=grid>")
             sys.exit(2)
 
     if (usage):
@@ -201,16 +201,12 @@ def main():
         topology = 'grid'
     elif ('erdosrenyi' in topology):
         device_param = float(topology[10:])
+        topology = 'erdosrenyi'
     #if (outputfile == None): outputfile = file_name
 
     device = Device(topology, qubits, omega_max, delta_int, delta_ext, delta_park, cqq, alpha, ejs, ejl, ec, d=dist)
     device.build_graph(device_param)
-    print(device.g_connect.edges())
-    print("======================")
-    print(device.g_xtalk.edges())
-    print("======================")
-    print(device.coupling)
-    print("======================")
+
     start = time.time()
     # success, avg, worst, d_before, d_after, t, c, t_act, t_2q = simulate(device, circuit, mapper, scheduler, freq, dist, decomp, outputfile, depth=depth, lim_colors=lim_colors, verbose=verbose)
     success, swap_err, leak_err, qb_err, d_before, d_after, t, c = simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=depth, lim_colors=lim_colors, verbose=verbose, uniform_freq=uniform_freq, sigma=sigma, res_coupling=res_coupling)

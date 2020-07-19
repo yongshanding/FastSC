@@ -111,6 +111,10 @@ def get_connectivity_graph(qubits, topology='grid', param=None):
         if param == None:
             print("Erdos Renyi graph needs parameter p.")
         return nx.convert_node_labels_to_integers(nx.fast_gnp_random_graph(qubits, param))
+    elif topology == 'cycle':
+        return nx.convert_node_labels_to_integers(nx.cycle_graph(qubits))
+    elif topology == 'wheel':
+        return nx.convert_node_labels_to_integers(nx.wheel_graph(qubits))
         
 
 def get_aug_line_graph(width, height, d):
