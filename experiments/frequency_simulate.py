@@ -203,7 +203,7 @@ def main():
         device_param = float(topology[10:])
     #if (outputfile == None): outputfile = file_name
 
-    device = Device(topology, qubits, omega_max, delta_int, delta_ext, delta_park, cqq, alpha, ejs, ejl, ec, dist)
+    device = Device(topology, qubits, omega_max, delta_int, delta_ext, delta_park, cqq, alpha, ejs, ejl, ec, d=dist)
     device.build_graph(device_param)
     print(device.g_connect.edges())
     print("======================")

@@ -83,12 +83,12 @@ def color_opt(device, circuit, scheduler, d, decomp, lim_colors, verbose):
     delta_park = device.delta_park
     ALPHA = device.alpha
 
-    #G_connect = device.g_connect
-    G_connect = get_connectivity_graph(width*height, 'grid')
+    G_connect = device.g_connect
+    #G_connect = get_connectivity_graph(width*height, 'grid')
     park_coloring = nx.coloring.greedy_color(G_connect)
     num_park = len(set(park_coloring.values()))
-    #G_crosstalk = device.g_xtalk 
-    G_crosstalk = get_aug_line_graph(width, height, d)
+    G_crosstalk = device.g_xtalk 
+    #G_crosstalk = get_aug_line_graph(width, height, d)
     coupling = device.coupling
     Cqq = device.cqq
 
