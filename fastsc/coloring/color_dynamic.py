@@ -1,25 +1,28 @@
-from fastsc.util import get_connectivity_graph, get_aug_line_graph, get_map_circuit, get_layer_circuits 
+from fastsc.util import get_map_circuit, get_layer_circuits 
 import networkx as nx
 import numpy as np
 from fastsc.models import IR, Qbit, Inst
 from .util import relabel_coloring, get_qubits, decompose_layer, decompose_layer_flexible, reschedule_layer, limit_colors, get_max_time
+from fastsc.util import get_connectivity_graph, get_aug_line_graph
 
 def color_dynamic(device, circuit, scheduler, d, decomp, lim_colors, verbose):
     freqsdata = []
     gatesdata = []
     width = device.side_length
     height = device.side_length
-    num_q = width * height
+    num_q = device.qubits
     omega_max = device.omega_max
     delta_int = device.delta_int
     delta_ext= device.delta_ext
     delta_park = device.delta_park
     ALPHA = device.alpha
 
-    G_connect = get_connectivity_graph(width, height)
+    G_connect = device.g_connect
+    #G_connect = get_connectivity_graph(width*height, 'grid')
     park_coloring = nx.coloring.greedy_color(G_connect)
     num_park = len(set(park_coloring.values()))
-    G_crosstalk = get_aug_line_graph(width, height, d)
+    G_crosstalk = device.g_xtalk
+    #G_crosstalk = get_aug_line_graph(width, height, d)
     coupling = device.coupling
     Cqq = device.cqq
 

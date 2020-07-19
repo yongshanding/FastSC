@@ -142,6 +142,7 @@ def main():
     sigma = 0.0
     res_coupling = 0.0
     topology = None
+    device_param = None
     try:
         opt, args = getopt.getopt(sys.argv[1:], "hi:p:m:s:f:x:d:q:c:v:u:n:r:t:", ["help", "input=", "depth=", "mapper=", "scheduler=", "frequency=", "crosstalk=", "decomposition=", "qubits=","colors=","verbose=","uniform_freq=","noise=","res_coupling=", "topology="])
     except getopt.GetOptError as err:
@@ -196,12 +197,20 @@ def main():
     if (freq == None): freq = 'full'
     if (dist == None): dist = 1
     if (decomp == None): decomp = 'iswap'
-    if (topology == None): topology = 'grid'
+    if (topology == None): 
+        topology = 'grid'
+    elif ('erdosrenyi' in topology):
+        device_param = float(topology[10:])
     #if (outputfile == None): outputfile = file_name
 
-    side_length = int(np.sqrt(qubits))
-
-    device = Device(topology, qubits, omega_max, delta_int, delta_ext, delta_park, cqq, alpha, ejs, ejl, ec)
+    device = Device(topology, qubits, omega_max, delta_int, delta_ext, delta_park, cqq, alpha, ejs, ejl, ec, dist)
+    device.build_graph(device_param)
+    print(device.g_connect.edges())
+    print("======================")
+    print(device.g_xtalk.edges())
+    print("======================")
+    print(device.coupling)
+    print("======================")
     start = time.time()
     # success, avg, worst, d_before, d_after, t, c, t_act, t_2q = simulate(device, circuit, mapper, scheduler, freq, dist, decomp, outputfile, depth=depth, lim_colors=lim_colors, verbose=verbose)
     success, swap_err, leak_err, qb_err, d_before, d_after, t, c = simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=depth, lim_colors=lim_colors, verbose=verbose, uniform_freq=uniform_freq, sigma=sigma, res_coupling=res_coupling)

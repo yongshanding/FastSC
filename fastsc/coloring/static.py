@@ -1,4 +1,4 @@
-from fastsc.util import get_connectivity_graph, get_aug_line_graph, get_map_circuit, get_layer_circuits
+from fastsc.util import get_map_circuit, get_layer_circuits
 import networkx as nx
 import numpy as np
 from ..models import IR, Qbit, Inst
@@ -9,17 +9,17 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
     gatesdata = []
     width = device.side_length
     height = device.side_length
-    num_q = width * height
+    num_q = device.qubits
     omega_max = device.omega_max
     delta_int = device.delta_int
     delta_ext= device.delta_ext
     delta_park = device.delta_park
     ALPHA = device.alpha
 
-    G_connect = get_connectivity_graph(width, height)
+    G_connect = device.g_connect #get_connectivity_graph(width, height)
     park_coloring = nx.coloring.greedy_color(G_connect)
     num_park = len(set(park_coloring.values()))
-    G_crosstalk = get_aug_line_graph(width, height, d)
+    G_crosstalk = device.g_xtalk #get_aug_line_graph(width, height, d)
 
     q_arr = get_qubits(circuit)
 

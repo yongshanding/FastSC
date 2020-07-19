@@ -1,4 +1,4 @@
-from fastsc.util import get_connectivity_graph, get_aug_line_graph, get_map_circuit, get_layer_circuits, gen_tiling_pattern
+from fastsc.util import get_map_circuit, get_layer_circuits, gen_tiling_pattern
 import networkx as nx
 import numpy as np
 from ..models import Sycamore_device, IR, Qbit, Inst
@@ -161,13 +161,13 @@ def google_like(device, circuit, scheduler, d, decomp, verbose, res_coup=0.0):
     gatesdata = []
     width = device.side_length
     height = device.side_length
-    num_q = width * height
+    num_q = device.qubits
     q_arr = get_qubits(circuit)
     ALPHA = device.alpha
 
     tilings = gen_tiling_pattern(device)
-    G_connect = get_connectivity_graph(width, height)
-    G_crosstalk = get_aug_line_graph(width, height, d)
+    G_connect = device.g_connect #get_connectivity_graph(width, height)
+    G_crosstalk = device.g_xtalk #get_aug_line_graph(width, height, d)
     syc_device = Sycamore_device(device, num_q, res_coup)
     int_freqs = syc_device.int_freqs
     park_freqs = syc_device.park_freqs

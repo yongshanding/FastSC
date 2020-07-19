@@ -102,8 +102,16 @@ def get_layer_circuits(circuit):
         layer_circuits.append(dag_to_circuit(layer['graph']))
     return layer_circuits
 
-def get_connectivity_graph(width, height):
-    return nx.convert_node_labels_to_integers(nx.grid_2d_graph(width, height))
+def get_connectivity_graph(qubits, topology='grid', param=None):
+    if topology == 'grid':
+        # assume square grid
+        side = int(np.sqrt(qubits))
+        return nx.convert_node_labels_to_integers(nx.grid_2d_graph(side, side))
+    elif topology == 'erdosrenyi':
+        if param == None:
+            print("Erdos Renyi graph needs parameter p.")
+        return nx.convert_node_labels_to_integers(nx.fast_gnp_random_graph(qubits, param))
+        
 
 def get_aug_line_graph(width, height, d):
     
@@ -112,7 +120,7 @@ def get_aug_line_graph(width, height, d):
         x_b, y_b = int(point_b) // height, int(point_b) % height
         return math.fabs(x_a - x_b) + math.fabs(y_a - y_b)
 
-    out_graph = nx.line_graph(get_connectivity_graph(width, height))
+    out_graph = nx.line_graph(get_connectivity_graph(width*height, 'grid'))
     augmenting_depth_one = []
     
     vertices = list(out_graph.nodes())
@@ -125,6 +133,28 @@ def get_aug_line_graph(width, height, d):
     
     out_graph.add_edges_from(augmenting_depth_one)
     return out_graph
+
+
+def get_crosstalk_graph(g_conn, topology='grid', d=1):
+    if topology == 'grid':
+        nq = len(g_conn)
+        side_length = int(np.sqrt(nq))
+        return get_aug_line_graph(side_length, side_length, d)
+    else:
+        if d != 1: print("Distance > 1 not yet supported for non-grid.")
+        out_graph = nx.line_graph(g_conn)
+        augmenting = []
+        vertices = list(out_graph.nodes())
+        marked = {}
+        for from_node in vertices:
+            marked[from_node] = True
+            for n in out_graph.neighbors(from_node):
+                for to_node in out_graph.neighbors(n):
+                    if not(to_node in marked): # undirected and prevent selfloop
+                        augmenting.append((from_node, to_node))
+        out_graph.add_edges_from(augmenting)
+        return out_graph
+        
 
 def gen_tiling_pattern(device):
     # Generate coupler activation pattern, assume 2D grid of qubits
