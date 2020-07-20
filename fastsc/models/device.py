@@ -48,7 +48,7 @@ class Device(object):
         self.error_1q_gate = error_1q_gate
 
     def build_graph(self, param=None):
-        supported = ['grid', 'erdosrenyi', 'cycle', 'wheel']
+        supported = ['grid', 'erdosrenyi', 'cycle', 'wheel', 'complete', 'turan', 'regular']
         if self.topology=='grid':
             self.g_connect = get_connectivity_graph(self.qubits, self.topology)
             self.coupling = get_grid_coupling_list(self.side_length, self.side_length)

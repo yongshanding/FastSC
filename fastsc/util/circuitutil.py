@@ -67,6 +67,48 @@ def get_map_circuit(circuit, coupling_list=None):
 
     return optimized_circuit
 
+def get_layer_circuits(circuit):
+    """Returns a list of circuits representing each simultaneous layer of circuit."""
+    dagcircuit = circuit_to_dag(circuit)
+    layer_circuits = []
+    for layer in dagcircuit.layers():
+        layer_circuits.append(dag_to_circuit(layer['graph']))
+    return layer_circuits
+
+
+#######################################
+### Connectivity Graph Construction ###
+#######################################
+
+def get_connectivity_graph(qubits, topology='grid', param=None):
+    if topology == 'grid':
+        # assume square grid
+        side = int(np.sqrt(qubits))
+        return nx.convert_node_labels_to_integers(nx.grid_2d_graph(side, side))
+    elif topology == 'erdosrenyi':
+        if param == None:
+            print("Erdos Renyi graph needs parameter p.")
+        return nx.convert_node_labels_to_integers(nx.fast_gnp_random_graph(qubits, param))
+    elif topology == 'turan':
+        if param == None:
+            print("Turan graph needs parameter r.")
+        return nx.convert_node_labels_to_integers(nx.turan_graph(qubits, param))
+    elif topology == 'regular':
+        if param == None:
+            print("d-regular graph needs parameter d.")
+        return nx.convert_node_labels_to_integers(nx.random_regular_graph(param, qubits))
+    elif topology == 'cycle':
+        return nx.convert_node_labels_to_integers(nx.cycle_graph(qubits))
+    elif topology == 'wheel':
+        return nx.convert_node_labels_to_integers(nx.wheel_graph(qubits))
+    elif topology == 'complete':
+        return nx.convert_node_labels_to_integers(nx.complete_graph(qubits))
+    else:
+        print("Topology %s not recognized; use empty graph instead." % topology)
+        return nx.convert_node_labels_to_integers(nx.empty_graph(qubits))
+
+
+
 def get_grid_coupling_list(width, height, directed=True):
     """Returns a coupling list for nearest neighbor (rectilinear grid) architecture.
     Qubits are numbered in row-major order with 0 at the top left and
@@ -94,27 +136,30 @@ def get_grid_coupling_list(width, height, directed=True):
 
     return coupling_list
 
-def get_layer_circuits(circuit):
-    """Returns a list of circuits representing each simultaneous layer of circuit."""
-    dagcircuit = circuit_to_dag(circuit)
-    layer_circuits = []
-    for layer in dagcircuit.layers():
-        layer_circuits.append(dag_to_circuit(layer['graph']))
-    return layer_circuits
 
-def get_connectivity_graph(qubits, topology='grid', param=None):
+####################################
+### Crosstalk Graph Construction ###
+####################################
+
+def get_crosstalk_graph(g_conn, topology='grid', d=1):
     if topology == 'grid':
-        # assume square grid
-        side = int(np.sqrt(qubits))
-        return nx.convert_node_labels_to_integers(nx.grid_2d_graph(side, side))
-    elif topology == 'erdosrenyi':
-        if param == None:
-            print("Erdos Renyi graph needs parameter p.")
-        return nx.convert_node_labels_to_integers(nx.fast_gnp_random_graph(qubits, param))
-    elif topology == 'cycle':
-        return nx.convert_node_labels_to_integers(nx.cycle_graph(qubits))
-    elif topology == 'wheel':
-        return nx.convert_node_labels_to_integers(nx.wheel_graph(qubits))
+        nq = len(g_conn)
+        side_length = int(np.sqrt(nq))
+        return get_aug_line_graph(side_length, side_length, d)
+    else:
+        if d != 1: print("Distance > 1 not yet supported for non-grid.")
+        out_graph = nx.line_graph(g_conn)
+        augmenting = []
+        vertices = list(out_graph.nodes())
+        marked = {}
+        for from_node in vertices:
+            marked[from_node] = True
+            for n in out_graph.neighbors(from_node):
+                for to_node in out_graph.neighbors(n):
+                    if not(to_node in marked): # undirected and prevent selfloop
+                        augmenting.append((from_node, to_node))
+        out_graph.add_edges_from(augmenting)
+        return out_graph
         
 
 def get_aug_line_graph(width, height, d):
@@ -139,26 +184,6 @@ def get_aug_line_graph(width, height, d):
     return out_graph
 
 
-def get_crosstalk_graph(g_conn, topology='grid', d=1):
-    if topology == 'grid':
-        nq = len(g_conn)
-        side_length = int(np.sqrt(nq))
-        return get_aug_line_graph(side_length, side_length, d)
-    else:
-        if d != 1: print("Distance > 1 not yet supported for non-grid.")
-        out_graph = nx.line_graph(g_conn)
-        augmenting = []
-        vertices = list(out_graph.nodes())
-        marked = {}
-        for from_node in vertices:
-            marked[from_node] = True
-            for n in out_graph.neighbors(from_node):
-                for to_node in out_graph.neighbors(n):
-                    if not(to_node in marked): # undirected and prevent selfloop
-                        augmenting.append((from_node, to_node))
-        out_graph.add_edges_from(augmenting)
-        return out_graph
-        
 
 def gen_tiling_pattern(device):
     # Generate coupler activation pattern, assume 2D grid of qubits

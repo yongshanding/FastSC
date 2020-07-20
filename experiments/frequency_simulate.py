@@ -197,11 +197,20 @@ def main():
     if (freq == None): freq = 'full'
     if (dist == None): dist = 1
     if (decomp == None): decomp = 'iswap'
+    supported = ['grid', 'erdosrenyi', 'cycle', 'wheel', 'complete', 'turan', 'regular']
     if (topology == None): 
         topology = 'grid'
     elif ('erdosrenyi' in topology):
-        device_param = float(topology[10:])
+        device_param = float(topology[10:]) # edge prob p
         topology = 'erdosrenyi'
+    elif ('turan' in topology):
+        device_param = int(topology[5:]) # multipartite r disjoint subsets
+        topology = 'turan'
+    elif ('regular' in topology):
+        device_param = int(topology[7:]) # degree d of d-regular graph
+        topology = 'regular'
+    elif not(topology in supported):
+        print("Topology %s not yet supported." % topology)
     #if (outputfile == None): outputfile = file_name
 
     device = Device(topology, qubits, omega_max, delta_int, delta_ext, delta_park, cqq, alpha, ejs, ejl, ec, d=dist)
