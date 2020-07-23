@@ -134,7 +134,7 @@ def color_opt(device, circuit, scheduler, d, decomp, lim_colors, verbose):
         return omg #+ get_flux_noise(device, omg, sigma)
     def _initial_frequency():
         freqs = dict()
-        for q in range(width*height):
+        for q in range(num_q):
             freqs[q] = _park_freq(park_coloring[q])
         return freqs
     circ_mapped = get_map_circuit(circuit, coupling)

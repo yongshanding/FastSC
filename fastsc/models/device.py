@@ -48,18 +48,14 @@ class Device(object):
         self.error_1q_gate = error_1q_gate
 
     def build_graph(self, param=None):
-        supported = ['grid', 'erdosrenyi', 'cycle', 'wheel', 'complete', 'turan', 'regular']
         if self.topology=='grid':
             self.g_connect = get_connectivity_graph(self.qubits, self.topology)
             self.coupling = get_grid_coupling_list(self.side_length, self.side_length)
             self.g_xtalk = get_crosstalk_graph(self.g_connect, self.topology, self.d_xtalk)
-        elif self.topology in supported:
+        else:
             self.g_connect = get_connectivity_graph(self.qubits, self.topology, param)
             self.coupling = self.g_connect.edges()
             self.g_xtalk = get_crosstalk_graph(self.g_connect, self.topology, self.d_xtalk)
-        else:
-            print("Topology not recognized.")
-            self.coupling = None
 
 class Sycamore_device(object):
     def __init__(self, device, size, res_coupling=0.0):

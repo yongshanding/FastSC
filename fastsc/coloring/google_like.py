@@ -175,7 +175,7 @@ def google_like(device, circuit, scheduler, d, decomp, verbose, res_coup=0.0):
 
     def _initial_frequency():
         freqs = dict()
-        for q in range(width*height):
+        for q in range(num_q):
             freqs[q] = park_freqs[q]
         return freqs
 

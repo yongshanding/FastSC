@@ -21,9 +21,13 @@ def sqrtw():
 
 def get_xeb_circuit(num_qubits, depth):
     """Cross-entropy benchmark circuit based on Google supremacy paper"""
-    assert int(np.sqrt(num_qubits)) ** 2 == num_qubits, 'only doing square grids for now'
+    #assert int(np.sqrt(num_qubits)) ** 2 == num_qubits, 'only doing square grids for now'
     qc = QuantumCircuit(num_qubits)
-    dim = int(np.sqrt(num_qubits))
+    for i in range(num_qubits):
+        qc.h(i)
+    dim = int(np.sqrt(num_qubits)) # round down to the largest square
+    # only apply gates to the first perfect square number of qubits
+    num_qubits = dim * dim
     G = nx.convert_node_labels_to_integers(nx.grid_2d_graph(dim, dim))
     # partitioning the couplings into 4 sets
     setA = []
@@ -108,9 +112,11 @@ def get_xeb_circuit(num_qubits, depth):
 
 def get_xeb_iswap_barriers_circuit(num_qubits, depth):
     """Cross-entropy benchmark circuit based on Google supremacy paper, with iSWAPs instead of CZs"""
-    assert int(np.sqrt(num_qubits)) ** 2 == num_qubits, 'only doing square grids for now'
+    #assert int(np.sqrt(num_qubits)) ** 2 == num_qubits, 'only doing square grids for now'
     qc = QuantumCircuit(num_qubits)
     dim = int(np.sqrt(num_qubits))
+    # only apply gates to the first perfect square number of qubits
+    num_qubits = dim * dim
     G = nx.convert_node_labels_to_integers(nx.grid_2d_graph(dim, dim))
     # partitioning the couplings into 4 sets
     setA = []
@@ -199,9 +205,11 @@ def get_xeb_iswap_barriers_circuit(num_qubits, depth):
 
 def get_xeb_iswap_circuit(num_qubits, depth):
     """Cross-entropy benchmark circuit based on Google supremacy paper, with iSWAPs instead of CZs"""
-    assert int(np.sqrt(num_qubits)) ** 2 == num_qubits, 'only doing square grids for now'
+    #assert int(np.sqrt(num_qubits)) ** 2 == num_qubits, 'only doing square grids for now'
     qc = QuantumCircuit(num_qubits)
     dim = int(np.sqrt(num_qubits))
+    # only apply gates to the first perfect square number of qubits
+    num_qubits = dim * dim
     G = nx.convert_node_labels_to_integers(nx.grid_2d_graph(dim, dim))
     # partitioning the couplings into 4 sets
     setA = []

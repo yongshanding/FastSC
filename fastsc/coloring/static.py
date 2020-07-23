@@ -55,7 +55,7 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
         return omg #+ get_flux_noise(device, omg, sigma)#+np.random.normal(0,sigma)
     def _initial_frequency():
         freqs = dict()
-        for q in range(width*height):
+        for q in range(num_q):
             freqs[q] = _park_freq(park_coloring[q])
         return freqs
 
@@ -76,8 +76,9 @@ def static_coloring(device, circuit, scheduler, d, decomp, verbose, uniform_freq
     park_freqs = _initial_frequency()
     alphas = [ALPHA for f in park_freqs]
     for i in range(num_q):
-        q_arr[i].idle_freq = [park_freqs[i], park_freqs[i]+alphas[i]]
-    ir = IR(qubits = q_arr, width = num_q, coupling = coupling, alpha = ALPHA)
+        if i < len(q_arr):
+            q_arr[i].idle_freq = [park_freqs[i], park_freqs[i]+alphas[i]]
+    ir = IR(qubits = q_arr, width = len(q_arr), coupling = coupling, alpha = ALPHA)
 
     #circuit.draw(output='mpl')
     # Check scheduler

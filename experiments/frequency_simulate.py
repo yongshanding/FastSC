@@ -58,7 +58,7 @@ cqq = 0.019
 
 
 def simulate(device, circuit, mapper, scheduler, freq, dist, decomp, depth=0, lim_colors=0,verbose=0,uniform_freq=0,sigma=0.0,res_coupling=0.0):
-    circ = get_circuit(device.side_length * device.side_length, circuit, dep=depth)
+    circ = get_circuit(device.qubits, circuit, dep=depth)
     # Crosstalk-aware mapping yet to be implemented.
     #scheduled = reschedule(circ, scheduler)
 
@@ -181,7 +181,9 @@ def main():
             sigma = float(a)
         elif o in ("-r", "--res_coupling"): # 0.0, 0.1, ... (residual coupling factor)
             res_coupling = float(a)
-        elif o in ("-t", "--topology"): # grid, erdosrenyi0.5, cycle, wheel
+        elif o in ("-t", "--topology"): 
+            # grid, erdosrenyi0.5, cycle, wheel, turan, regular3, hexagonal
+            # Note that regular(d,n) must have n*d is even and d < n.
             topology = a
         else:
             print("Usage: frequency_simulate.py -i <input circuit=bv> -q <num qubits (square)> -p <depth of supremacy circuit> -m <mapper=qiskit> -s <scheduler=qiskit> -f <frequency assignment=full> -x <crosstalk distance=1> -d <circuit decomposition=iswap> -c <max colors> -v <verbosity=1: less verbose> -u <uniform_freq=0> -n <flux noise=0.0> -r <res_coupling> -t <topology=grid>")
@@ -197,7 +199,7 @@ def main():
     if (freq == None): freq = 'full'
     if (dist == None): dist = 1
     if (decomp == None): decomp = 'iswap'
-    supported = ['grid', 'erdosrenyi', 'cycle', 'wheel', 'complete', 'turan', 'regular']
+    supported = ['grid', 'erdosrenyi', 'cycle', 'wheel', 'complete', 'turan', 'regular', 'hexagonal', 'path', 'ibm_falcon', 'ibm_penguin']
     if (topology == None): 
         topology = 'grid'
     elif ('erdosrenyi' in topology):
@@ -209,12 +211,16 @@ def main():
     elif ('regular' in topology):
         device_param = int(topology[7:]) # degree d of d-regular graph
         topology = 'regular'
+    #elif (topology == 'ibm_falcon'):
+    #    qubits = 27
+    #elif (topology == 'ibm_penguin'):
+    #    qubits = 20
     elif not(topology in supported):
         print("Topology %s not yet supported." % topology)
     #if (outputfile == None): outputfile = file_name
 
     device = Device(topology, qubits, omega_max, delta_int, delta_ext, delta_park, cqq, alpha, ejs, ejl, ec, d=dist)
-    device.build_graph(device_param)
+    device.build_graph(device_param) # build connectivity and crosstalk graphs
 
     start = time.time()
     # success, avg, worst, d_before, d_after, t, c, t_act, t_2q = simulate(device, circuit, mapper, scheduler, freq, dist, decomp, outputfile, depth=depth, lim_colors=lim_colors, verbose=verbose)

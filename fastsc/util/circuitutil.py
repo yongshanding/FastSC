@@ -81,31 +81,64 @@ def get_layer_circuits(circuit):
 #######################################
 
 def get_connectivity_graph(qubits, topology='grid', param=None):
-    if topology == 'grid':
-        # assume square grid
-        side = int(np.sqrt(qubits))
-        return nx.convert_node_labels_to_integers(nx.grid_2d_graph(side, side))
-    elif topology == 'erdosrenyi':
-        if param == None:
-            print("Erdos Renyi graph needs parameter p.")
-        return nx.convert_node_labels_to_integers(nx.fast_gnp_random_graph(qubits, param))
-    elif topology == 'turan':
-        if param == None:
-            print("Turan graph needs parameter r.")
-        return nx.convert_node_labels_to_integers(nx.turan_graph(qubits, param))
-    elif topology == 'regular':
-        if param == None:
-            print("d-regular graph needs parameter d.")
-        return nx.convert_node_labels_to_integers(nx.random_regular_graph(param, qubits))
-    elif topology == 'cycle':
-        return nx.convert_node_labels_to_integers(nx.cycle_graph(qubits))
-    elif topology == 'wheel':
-        return nx.convert_node_labels_to_integers(nx.wheel_graph(qubits))
-    elif topology == 'complete':
-        return nx.convert_node_labels_to_integers(nx.complete_graph(qubits))
-    else:
-        print("Topology %s not recognized; use empty graph instead." % topology)
-        return nx.convert_node_labels_to_integers(nx.empty_graph(qubits))
+    attempt = 0
+    while attempt < 10:
+        if topology == 'grid':
+            # assume square grid
+            side = int(np.sqrt(qubits))
+            G = nx.grid_2d_graph(side, side)
+        elif topology == 'erdosrenyi':
+            if param == None:
+                print("Erdos Renyi graph needs parameter p.")
+            G = nx.fast_gnp_random_graph(qubits, param)
+        elif topology == 'turan':
+            if param == None:
+                print("Turan graph needs parameter r.")
+            G = nx.turan_graph(qubits, param)
+        elif topology == 'regular':
+            if param == None:
+                print("d-regular graph needs parameter d.")
+            G = nx.random_regular_graph(param, qubits)
+        elif topology == 'cycle':
+            G = nx.cycle_graph(qubits)
+        elif topology == 'wheel':
+            G = nx.wheel_graph(qubits)
+        elif topology == 'complete':
+            G = nx.complete_graph(qubits)
+        elif topology == 'hexagonal':
+            # assume square hexagonal grid, node = 2(m+1)**2-2
+            side = int(np.sqrt((qubits+2)/2))-1
+            G = nx.hexagonal_lattice_graph(side, side)
+        elif topology == 'path':
+            G = nx.path_graph(qubits)
+        elif topology == 'ibm_falcon':
+            # https://www.ibm.com/blogs/research/2020/07/qv32-performance/
+            # 27 qubits
+            G = nx.empty_graph(27)
+            G.name = "ibm_falcon"
+            G.add_edges_from([(0,1),(1,2),(2,3),(3,4),(3,5),(5,6),
+                              (6,7),(7,8),(8,9),(8,10),(10,11),
+                              (1,12),(6,13),(11,14),
+                              (12,15),(15,16),(16,17),(17,18),(17,19),
+                              (19,20),(13,20),(20,21),(21,22),(22,23),
+                              (22,24),(24,25),(14,25),(25,26)])
+        elif topology == 'ibm_penguin':
+            # 20 qubits
+            G = nx.empty_graph(20)
+            G.name = "ibm_penguin"
+            G.add_edges_from([(0,1),(1,2),(2,3),(3,4),
+                              (0,5),(5,6),(6,7),(7,8),(8,9),(4,9),
+                              (5,10),(10,11),(11,12),(7,12),(12,13),(13,14),(9,14),
+                              (10,15),(15,16),(16,17),(17,18),(18,19),(14,19)])
+        else:
+            print("Topology %s not recognized; use empty graph instead." % topology)
+            G = nx.empty_graph(qubits)
+        if nx.is_connected(G) or nx.is_empty(G):
+            break
+        else:
+            attempt += 1
+
+    return nx.convert_node_labels_to_integers(G)
 
 
 
