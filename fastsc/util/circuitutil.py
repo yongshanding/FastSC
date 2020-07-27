@@ -130,6 +130,14 @@ def get_connectivity_graph(qubits, topology='grid', param=None):
                               (0,5),(5,6),(6,7),(7,8),(8,9),(4,9),
                               (5,10),(10,11),(11,12),(7,12),(12,13),(13,14),(9,14),
                               (10,15),(15,16),(16,17),(17,18),(18,19),(14,19)])
+        elif topology == '1express': # path with express channels
+            G = nx.convert_node_labels_to_integers(nx.path_graph(qubits))
+            G.add_edges_from([(s,s+param) for s in range(0,qubits-param,param//2)])
+        elif topology == '2express': # grid with express channels
+            side = int(np.sqrt(qubits))
+            G = nx.convert_node_labels_to_integers(nx.grid_2d_graph(side, side))
+            G.add_edges_from([(s,s+param) for x in range(side) for s in range(x*side,x*side+side-param,param//2)]) # rows
+            G.add_edges_from([(s,s+param*side) for y in range(side) for s in range(y,y+side*(side-param),param//2*side)]) # cols
         else:
             print("Topology %s not recognized; use empty graph instead." % topology)
             G = nx.empty_graph(qubits)

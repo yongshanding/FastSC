@@ -199,7 +199,7 @@ def main():
     if (freq == None): freq = 'full'
     if (dist == None): dist = 1
     if (decomp == None): decomp = 'iswap'
-    supported = ['grid', 'erdosrenyi', 'cycle', 'wheel', 'complete', 'turan', 'regular', 'hexagonal', 'path', 'ibm_falcon', 'ibm_penguin']
+    supported = ['grid', 'erdosrenyi', 'cycle', 'wheel', 'complete', 'turan', 'regular', 'hexagonal', 'path', 'ibm_falcon', 'ibm_penguin', '1express','2express']
     if (topology == None): 
         topology = 'grid'
     elif ('erdosrenyi' in topology):
@@ -215,6 +215,9 @@ def main():
     #    qubits = 27
     #elif (topology == 'ibm_penguin'):
     #    qubits = 20
+    elif ('express' in topology): # 1express3: 1-d cube (path) express every 3 nodes
+        device_param = int(topology[8:])
+        topology = topology[:8]
     elif not(topology in supported):
         print("Topology %s not yet supported." % topology)
     #if (outputfile == None): outputfile = file_name

@@ -110,21 +110,29 @@ def color_opt(device, circuit, scheduler, d, decomp, lim_colors, verbose):
 
     def _add_int_color_map(colormap, n_int):
         if decomp == 'cphase' or decomp == 'flexible':
-            (sat, omegas) = smt_find(smt_dict, omega_max-delta_int, omega_max + ALPHA, n_int, ALPHA, verbose, None)
-            if not sat:
+            if n_int > 5:
                 step_int = (delta_int + ALPHA) / n_int
                 omegas = [omega_max + ALPHA - c * step_int for c in range(n_int)]
-                if verbose == 0:
-                    print("Warning: SMT not satisfied for int freq.")
+            else:
+                (sat, omegas) = smt_find(smt_dict, omega_max-delta_int, omega_max + ALPHA, n_int, ALPHA, verbose, None)
+                if not sat:
+                    step_int = (delta_int + ALPHA) / n_int
+                    omegas = [omega_max + ALPHA - c * step_int for c in range(n_int)]
+                    if verbose == 0:
+                        print("Warning: SMT not satisfied for int freq.")
             for c in range(n_int):
                 colormap[str(c)] = omegas[c]
         else:
-            (sat, omegas) = smt_find(smt_dict, omega_max-delta_int, omega_max, n_int, ALPHA, verbose, None)
-            if not sat:
+            if n_int > 5:
                 step_int = delta_int / n_int
                 omegas = [omega_max - c * step_int for c in range(n_int)]
-                if verbose == 0:
-                    print("Warning: SMT not satisfied for int freq.")
+            else:
+                (sat, omegas) = smt_find(smt_dict, omega_max-delta_int, omega_max, n_int, ALPHA, verbose, None)
+                if not sat:
+                    step_int = delta_int / n_int
+                    omegas = [omega_max - c * step_int for c in range(n_int)]
+                    if verbose == 0:
+                        print("Warning: SMT not satisfied for int freq.")
             for c in range(n_int):
                 colormap[str(c)] = omegas[c]
 
