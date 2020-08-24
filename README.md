@@ -1,6 +1,11 @@
 # FastSC
 Frequency-Aware Synthesis Toolbox for Superconducting Quantum Computers
 
+## Reference
+Systematic Crosstalk Mitigation for Superconducting Qubits via Frequency-Aware Compilation [[arXiv]](https://arxiv.org/abs/2008.09503)
+
+Yongshan Ding, Pranav Gokhale, Sophia Fuhui Lin, Richard Rines, Thomas Propson, Frederic T. Chong
+
 
 ## Install
 
@@ -13,10 +18,6 @@ It is encouraged to install the software using virtualenv
 `pip install -r requirements.txt`
 
 `pip install -e .`
-
-## Run test
-
-`cd tests/`
 
 ## Run frequency assignment algorithm
 
