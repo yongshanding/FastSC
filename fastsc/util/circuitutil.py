@@ -13,7 +13,7 @@ import pickle
 
 #from qiskit import Aer, BasicAer, 
 from qiskit import QuantumCircuit, QuantumRegister, execute
-from qiskit.extensions.standard import *
+from qiskit.circuit.library.standard_gates import *
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler import PassManager, CouplingMap
 from qiskit.compiler import transpile
